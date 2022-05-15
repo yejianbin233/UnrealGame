@@ -1,0 +1,10 @@
+.vs/
+Binaries/
+Intermediate/
+DerivedDataCache/
+Saved/
+Content/StartContent/
+*.sln
+*.xcodeproj
+.idea/
+.build/
