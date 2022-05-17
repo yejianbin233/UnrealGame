@@ -34,14 +34,25 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Player State")
 	TSubclassOf<class UUserWidget> CharacterOverlayClass;
-	
-	class UCharacterOverlay* CharacterOverlay;
 
+	UPROPERTY()
+	class UCharacterOverlay* CharacterOverlay;
+	
+	void AddCharacterOverlay();
+
+	UPROPERTY(EditAnywhere, Category = "Announcement")
+	TSubclassOf<UUserWidget> AnnouncementClass;
+
+	UPROPERTY()
+	class UAnnouncement* Announcement;
+
+	void AddAnnouncement();
+	
 protected:
 
 	virtual void BeginPlay() override;
 
-	void AddCharacterOverlay();
+	
 
 private:
 

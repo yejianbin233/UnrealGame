@@ -6,6 +6,15 @@
 #include "GameFramework/GameMode.h"
 #include "BlasterGameMode.generated.h"
 
+
+/*
+ * 自定义游戏模式比赛状态(MatchState)
+ */
+namespace MatchState
+{
+	extern UNREALGAME_API const FName Cooldown;
+}
+
 /**
  * 
  */
@@ -17,6 +26,10 @@ class UNREALGAME_API ABlasterGameMode : public AGameMode
 
 public:
 
+	ABlasterGameMode();
+
+	virtual void Tick(float DeltaSeconds) override;
+
 	// 被淘汰的玩家
 	virtual void PlayerEliminated(class ABlasterCharacter* ElimmedCharacter
 		, class ABlasterPlayerController* VictimController
@@ -24,12 +37,32 @@ public:
 
 	// 游戏模式 - 请求重生成
 	virtual void RequestRespawn(class ACharacter* ElimmedCharacter, AController* ElimmedController);
+
+
+	UPROPERTY(EditDefaultsOnly)
+	float WarmupTime = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float MatchTime = 120.0f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CooldownTime = 10.0f;
+
+	float LevelStartingTime = 0.0f;
 	
 protected:
 
-	
+	virtual void BeginPlay() override;
+
+	virtual void OnMatchStateSet() override;
 	
 private:
 
-	
+	float CountdownTime = 0.0f;
+
+
+public:
+
+	FORCEINLINE float GetCountdownTime() const { return CountdownTime; }
+		
 };

@@ -42,6 +42,10 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void PlayElimMontage();
+
+	// 用于禁止玩家移动输入(不包括旋转)和装备武器
+	UPROPERTY(Replicated)
+	bool bDisableGameplay = false;
 	
 protected:
 	// Called when the game starts or when spawned
@@ -234,5 +238,7 @@ public:
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 
 	ECombatState GetCombatState() const;
+
+	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 	
 };

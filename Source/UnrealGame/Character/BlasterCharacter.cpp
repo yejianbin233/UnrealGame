@@ -76,6 +76,7 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
+	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
 	
 }
 
@@ -184,6 +185,11 @@ void ABlasterCharacter::PlayReloadMontage()
 
 void ABlasterCharacter::MoveForward(float Value)
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Controller != nullptr && Value != 0.0f)
 	{
 		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
@@ -195,6 +201,11 @@ void ABlasterCharacter::MoveForward(float Value)
 
 void ABlasterCharacter::MoveRight(float Value)
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Controller != nullptr && Value != 0.0f)
 	{
 		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
@@ -224,6 +235,11 @@ void ABlasterCharacter::JumpButtonPressed()
 
 void ABlasterCharacter::EquipButtonPressed()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Combat)
 	{
 		if (HasAuthority())
@@ -239,6 +255,11 @@ void ABlasterCharacter::EquipButtonPressed()
 
 void ABlasterCharacter::CrouchButtonPressed()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (bIsCrouched)
 	{
 		UnCrouch();
@@ -251,6 +272,11 @@ void ABlasterCharacter::CrouchButtonPressed()
 
 void ABlasterCharacter::AimButtonPressed()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Combat)
 	{
 		Combat->SetAiming(true);
@@ -352,6 +378,11 @@ void ABlasterCharacter::TurnInPlace(float DeltaTime)
 
 void ABlasterCharacter::FireButtonPressed()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Combat)
 	{
 		Combat->FireButtonPressed(true);
@@ -360,6 +391,11 @@ void ABlasterCharacter::FireButtonPressed()
 
 void ABlasterCharacter::FireButtonReleased()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Combat)
 	{
 		Combat->FireButtonPressed(false);
@@ -368,6 +404,11 @@ void ABlasterCharacter::FireButtonReleased()
 
 void ABlasterCharacter::ReloadButtonPressed()
 {
+	if (bDisableGameplay)
+	{
+		return;
+	}
+	
 	if (Combat)
 	{
 		Combat->Reload();
@@ -592,10 +633,7 @@ void ABlasterCharacter::PlayElimMontage_Implementation()
 	// 停止移动及旋转
 	GetCharacterMovement()->StopMovementImmediately();
 
-	if (BlasterPlayerController)
-	{
-		DisableInput(BlasterPlayerController);
-	}
+	bDisableGameplay = true;
 
 	// 禁止碰撞
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);

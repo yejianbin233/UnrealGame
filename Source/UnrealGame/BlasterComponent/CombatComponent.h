@@ -31,6 +31,8 @@ public:
 	void EquipWeapon(class AWeapon* WeaponToEquip);
 
 	void Reload();
+
+	void FireButtonPressed(bool bPressed);
 	
 protected:
 	// Called when the game starts
@@ -43,8 +45,6 @@ protected:
 
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
-
-	void FireButtonPressed(bool bPressed);
 
 	UFUNCTION(Server, Reliable)
 	void Server_Fire(const FVector_NetQuantize& TraceHitTarget);
