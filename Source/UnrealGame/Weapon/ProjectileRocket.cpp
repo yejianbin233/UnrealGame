@@ -3,6 +3,7 @@
 
 #include "ProjectileRocket.h"
 
+#include "RocketMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AProjectileRocket::AProjectileRocket()
@@ -13,6 +14,11 @@ AProjectileRocket::AProjectileRocket()
 
 	// 开启碰撞
 	RocketMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	RocketMovementComponent = CreateDefaultSubobject<URocketMovementComponent>(TEXT("RocketMovementComponent"));
+	RocketMovementComponent->bRotationFollowsVelocity = true;
+	RocketMovementComponent->SetIsReplicated(true);
+	
 }
 
 void AProjectileRocket::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,

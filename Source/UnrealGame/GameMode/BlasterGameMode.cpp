@@ -19,7 +19,7 @@ namespace MatchState
 ABlasterGameMode::ABlasterGameMode()
 {
 	// 设置延迟开始后，只有当设置"开始比赛"才会创建玩家 Pawn
-	bDelayedStart = true;
+	bDelayedStart = false;
 }
 
 void ABlasterGameMode::BeginPlay()

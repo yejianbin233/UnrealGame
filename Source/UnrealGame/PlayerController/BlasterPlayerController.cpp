@@ -5,6 +5,8 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/GameMode.h"
+#include "GameFramework/PlayerState.h"
+#include "UnrealGame/PlayerState/BlasterPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/BlasterComponent/CombatComponent.h"
@@ -37,6 +39,25 @@ void ABlasterPlayerController::Tick(float DeltaTime)
 	CheckTimeSync(DeltaTime);
 
 	PollInit();
+
+	HighPingRunningTime += DeltaTime;
+
+	if (HighPingRunningTime > CheckPingFrequency)
+	{
+		ABlasterPlayerState* BlasterPlayerState = PlayerState == nullptr ? GetPlayerState<ABlasterPlayerState>() : nullptr;
+
+		if (PlayerState)
+		{
+
+			// PlayerState->GetPing() * 4 > HighPingThreshold; // UE 将 Ping 除以 4，以将其压缩，因此为了得到正确的 Ping 需要乘以 4.
+			if (PlayerState->GetPing() * 4 > HighPingThreshold)
+			{
+				// 高 Ping 处理
+			}; 
+		}
+
+		HighPingRunningTime = 0.0f;
+	}
 }
 
 void ABlasterPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -369,6 +390,11 @@ void ABlasterPlayerController::PollInit()
 	}	
 }
 
+void ABlasterPlayerController::HighPingWarning()
+{
+	 
+}
+
 void ABlasterPlayerController::HandleMatchHasStarted()
 {
 	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
@@ -413,7 +439,7 @@ void ABlasterPlayerController::HandleCooldown()
 
 	if (BlasterCharacter && BlasterCharacter->GetCombat())
 	{
-		BlasterCharacter->bDisableGameplay = true;
+		// BlasterCharacter->bDisableGameplay = true;
 
 		BlasterCharacter->GetCombat()->FireButtonPressed(false);
 		

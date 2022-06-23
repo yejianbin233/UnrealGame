@@ -17,6 +17,8 @@ class UNREALGAME_API AProjectileBullet : public AProjectile
 
 public:
 
+	AProjectileBullet();
+	
 protected:
 
 	virtual void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& HitResult) override;

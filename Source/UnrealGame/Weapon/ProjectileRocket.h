@@ -6,6 +6,7 @@
 #include "Projectile.h"
 #include "ProjectileRocket.generated.h"
 
+class URocketMovementComponent;
 /*
  * @name: AProjectileRocket - 火箭子弹类
  * @description: 火箭子弹
@@ -40,7 +41,13 @@ private:
 * Custom Variable
 */
 public:
+
+ 
 protected:
+
+	UPROPERTY(EditAnywhere)
+    URocketMovementComponent* RocketMovementComponent;
+ 
 private:
 
     UPROPERTY(VisibleAnywhere)

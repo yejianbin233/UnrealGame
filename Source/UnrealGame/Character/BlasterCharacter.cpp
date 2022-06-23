@@ -18,6 +18,9 @@
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
 #include "UnrealGame/Weapon/Weapon.h"
 #include "UnrealGame/PlayerState/BlasterPlayerState.h"
+#include "EnhancedInput/Public/EnhancedInputSubsystems.h"
+#include "EnhancedInput/Public/EnhancedInputComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -30,18 +33,10 @@ ABlasterCharacter::ABlasterCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetMesh());
 	CameraBoom->TargetArmLength = 600.0f;
-	CameraBoom->bUsePawnControlRotation = true;
 	
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	// 附加到弹簧臂的末端 Socket
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	FollowCamera->bUsePawnControlRotation = false;
-
-	// 不跟随控制器旋转而旋转
-	bUseControllerRotationYaw = false;
-
-	// 移动时自动旋转调整至移动方向
-	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	// 创建头顶内容控件
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
@@ -54,6 +49,8 @@ ABlasterCharacter::ABlasterCharacter()
 	// 设置移动组件可蹲伏
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
 	// 设置忽略摄像机碰撞
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
@@ -62,12 +59,13 @@ ABlasterCharacter::ABlasterCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
-	TurningInPlace = ETurningInPlace::ETIP_NotTuring;
-
+	// 网络更新
 	NetUpdateFrequency = 66.0f;
 	MinNetUpdateFrequency = 33.0f;
 
+	// 溶解
 	DissolveTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -102,6 +100,7 @@ void ABlasterCharacter::BeginPlay()
 		// 绑定伤害事件委托
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
 	}
+
 }
 
 // Called every frame
@@ -109,20 +108,21 @@ void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 自主代理和权威代理可以触发 AimOffset()
-	if (GetLocalRole() > ENetRole::ROLE_SimulatedProxy)
-	{
-		AimOffset(DeltaTime);
-	}
-	else
-	{
-		// 客户端代理则使用 SimProxiesTurn()
-		SimProxiesTurn();
-	}
-
 	HideCameraIfCharacterClose();
 
 	PollInit();
+
+	UpdateMovementDirection();
+
+	UpdateJumpToGroundBlend();
+
+	UpdateJumpState();
+
+	UpdateMovementSpeedLevel();
+
+	UpdateMovementRotation();
+
+	UpdateAimOffset(DeltaTime);
 }
 
 void ABlasterCharacter::PlayFireMontage(bool bIsAiming)
@@ -183,53 +183,129 @@ void ABlasterCharacter::PlayReloadMontage()
 	}
 }
 
-void ABlasterCharacter::MoveForward(float Value)
+void ABlasterCharacter::MoveForward(const FInputActionValue& ActionValue)
 {
+
 	if (bDisableGameplay)
 	{
 		return;
 	}
+
+	float Value = ActionValue.GetMagnitude();
+	
+
+	// GEngine->AddOnScreenDebugMessage(
+	// 		-1,
+	// 		1.0f,
+	// 		FColor::Green,
+	// 		FString::Printf(TEXT("Move Forward Value: %f"), Value)
+	// 	);
 	
 	if (Controller != nullptr && Value != 0.0f)
 	{
+		
 		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
-
+		
 		const FVector Direction(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X));
+
+		DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Green, false, 1);
+		DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Green, false, 1);
 		AddMovementInput(Direction, Value);
 	}
 }
 
-void ABlasterCharacter::MoveRight(float Value)
+void ABlasterCharacter::MoveRight(const FInputActionValue& ActionValue)
 {
+	
 	if (bDisableGameplay)
 	{
 		return;
 	}
+
+	float Value = ActionValue.GetMagnitude();
+
+	// GEngine->AddOnScreenDebugMessage(
+	// 			-1,
+	// 			1.0f,
+	// 			FColor::Green,
+	// 			FString::Printf(TEXT("Move Right Value: %f"), Value)
+	// 		);
 	
 	if (Controller != nullptr && Value != 0.0f)
 	{
 		const FRotator YawRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
 
 		const FVector Direction(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y));
+
+		DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Red, false, 1);
+		DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Red, false, 1);
 		AddMovementInput(Direction, Value);
 	}
 }
 
-void ABlasterCharacter::Turn(float Value)
+void ABlasterCharacter::Turn(const FInputActionValue& ActionValue)
 {
+	float Value = ActionValue.GetMagnitude() * MouseTurnRate;
+	// GEngine->AddOnScreenDebugMessage(
+	// 		-1,
+	// 		1.0f,
+	// 		FColor::Green,
+	// 		FString::Printf(TEXT("Turn Value: %f"), Value)
+	// 	);
 	AddControllerYawInput(Value);
 }
 
-void ABlasterCharacter::LookUp(float Value)
+void ABlasterCharacter::LookUp(const FInputActionValue& ActionValue)
 {
+	// 负数向上看
+	// 正数向下看
+	float Value = ActionValue.GetMagnitude() * MouseLookupRate;
+
+	// TODO - 用户友好优化
+	float TempMaxLowPitch = 360 - MaxLowPitch;
+	
+	float NextPitch = GetControlRotation().Pitch + Value;
+	
+	// 向上 / 向下 由 NextPitch 和 CurrentPitch 的运算决定，当 NextPitch 大于 CurrentPitch 时，向上；否则向下
+	// float Direction = NextPitch - CurrentPitch;
+	
+	// 上半边 - 当在最上边时，不允许继续向上
+	// TODO - Bug - 已存在逻辑，当摄像机被身体遮挡时，隐藏身体，如果将最上边俯视角大于 40 度，且在临界范围突然猛一下向上，就会将身体隐藏。
+	if (NextPitch > MaxTopPitch && NextPitch <= 180)
+	{
+		// 向上
+		if (Value < 0)
+		{
+			Value = 0.0f;
+		}
+	}
+	// 下半边 - 当在最下边时，不允许继续向下
+	else if (NextPitch >= 180 && NextPitch <= TempMaxLowPitch)
+	{
+		// 向下
+		if (Value > 0)
+		{
+			Value = 0.0f;
+		}
+	}
+
 	AddControllerPitchInput(Value);
+	
+	// GEngine->AddOnScreenDebugMessage(
+	// 		-1,
+	// 		1.0f,
+	// 		FColor::Green,
+	// 		FString::Printf(TEXT("NextPitch Value: %f, Control Pitch: %f"), NextPitch, GetControlRotation().Pitch)
+	// 	);
 }
 
 void ABlasterCharacter::JumpButtonPressed()
 {
+	
 	if (CanJump())
 	{
 		Jump();
+		bIsJump = true;
 	}
 }
 
@@ -270,6 +346,16 @@ void ABlasterCharacter::CrouchButtonPressed()
 	}
 }
 
+void ABlasterCharacter::SprintButtonPressed()
+{
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+}
+
+void ABlasterCharacter::SprintButtonReleased()
+{
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
 void ABlasterCharacter::AimButtonPressed()
 {
 	if (bDisableGameplay)
@@ -291,93 +377,9 @@ void ABlasterCharacter::AimButtonReleased()
 	}
 }
 
-void ABlasterCharacter::AimOffset(float DeltaTime)
-{
-	if (Combat && Combat->EquippedWeapon == nullptr)
-	{
-		// 如果没有装备武器则不执行武器的瞄准偏移动画
-		return;
-	}
-	
-	FVector Velocity = GetVelocity();
-	Velocity.Z = 0.0f;
-	float Speed = Velocity.Size();
-
-	bool bIsInAir = GetCharacterMovement()->IsFalling();
-
-	if (Speed == 0 && !bIsInAir) // Standing && Not Jumping
-	{
-		bRotateRootBone = true;
-		// 当停止时，将不移动的旋转与控制器的旋转进行运算，得到停止时的 Yaw 偏移
-		FRotator CurrentAimRotation = FRotator(0.0f, GetBaseAimRotation().Yaw,0.0f);
-
-		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(StartingAimRotation, CurrentAimRotation);
-
-		AO_Yaw = DeltaAimRotation.Yaw * -1; // * -1 用于调整方向。
-		bUseControllerRotationYaw = false;
-
-		if (TurningInPlace == ETurningInPlace::ETIP_NotTuring)
-		{
-			InterpAO_Yaw = AO_Yaw;
-		}
-		TurnInPlace(DeltaTime);
-	}
-
-	if (Speed > 0.0f || bIsInAir) // Running or Jumping
-	{
-		bRotateRootBone = false;
-		// 行走时维护 StartingAimRotation，用于记录当停止时的初始旋转
-		StartingAimRotation = FRotator(0.0f, GetBaseAimRotation().Yaw, 0.0f);
-		AO_Yaw = 0.0f;
-		// 当移动时，根据控制器的旋转来控制 Character 的旋转。
-		bUseControllerRotationYaw = true;
-
-		// 不旋转
-		TurningInPlace = ETurningInPlace::ETIP_NotTuring;
-	}
-	
-	AO_Pitch = GetBaseAimRotation().Pitch;
-	// AO_Pitch[-180, 180] 在网络传输过程中会将值压缩，变成无符号值[0, 360]，意味着负数会变成正数，然后在另一台机器上会被反压缩变成有符号值
-	// ，但值已经改变，需要特殊处理(重映射 - Remap)
-
-	if (AO_Pitch > 90.0f && !IsLocallyControlled())
-	{
-		// 重映射值
-		FVector2D InRange(270.0f, 360.0f);
-		FVector2D OutRange(-90.0f, 0.0f);
-		AO_Pitch = FMath::GetMappedRangeValueClamped(InRange, OutRange, AO_Pitch);
-	}
-	
-}
-
-void ABlasterCharacter::TurnInPlace(float DeltaTime)
-{
-	if (AO_Yaw > 90.0f)
-	{
-		TurningInPlace = ETurningInPlace::ETIP_Right;
-	}
-
-	if (AO_Yaw < -90.0f)
-	{
-		TurningInPlace = ETurningInPlace::ETIP_Left;
-	}
-
-	if (TurningInPlace != ETurningInPlace::ETIP_NotTuring)
-	{
-		InterpAO_Yaw = FMath::FInterpTo(InterpAO_Yaw, 0.0f, DeltaTime, 10.0f);
-
-		// ???
-		AO_Yaw = InterpAO_Yaw;
-		if (FMath::Abs(AO_Yaw) < 15.0f)
-		{
-			TurningInPlace = ETurningInPlace::ETIP_NotTuring;
-			StartingAimRotation = FRotator(0.0f, GetBaseAimRotation().Yaw, 0.0f);
-		}
- 	}
-}
-
 void ABlasterCharacter::FireButtonPressed()
 {
+
 	if (bDisableGameplay)
 	{
 		return;
@@ -413,16 +415,6 @@ void ABlasterCharacter::ReloadButtonPressed()
 	{
 		Combat->Reload();
 	}
-}
-
-void ABlasterCharacter::SimProxiesTurn()
-{
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
-	{
-		return;		
-	}
-
-	bRotateRootBone = false;
 }
 
 void ABlasterCharacter::ServerEquipButtomPressed_Implementation()
@@ -484,6 +476,211 @@ void ABlasterCharacter::OnRep_Health()
 	PlayHitReactMontage();
 }
 
+void ABlasterCharacter::UpdateMovementDirection()
+{
+	FVector Velocity = GetCharacterMovement()->Velocity;
+
+	if (Velocity.Size() == 0)
+	{
+		MovementDirection = EMovementDirection::EMD_Idle;
+
+		return;
+	}
+	
+
+	FRotator ControllerRotate = GetControlRotation();
+	FVector UnRotateVelocity = UKismetMathLibrary::LessLess_VectorRotator(Velocity, ControllerRotate);
+	FRotator VelocityRotate = UKismetMathLibrary::MakeRotFromX(UnRotateVelocity);
+
+	float Angle = VelocityRotate.Yaw;
+	float AbsAngle = FMath::Abs(Angle);
+
+	if (Angle > 0)
+	{
+		// 右半边
+		if (AbsAngle < 15.0f)
+		{
+			MovementDirection = EMovementDirection::EMD_Forward;
+		}
+		else if (UKismetMathLibrary::InRange_FloatFloat(AbsAngle, 15.0f, 75.0f, false, false))
+		{
+			MovementDirection = EMovementDirection::EMD_FR;
+		}
+		else if(UKismetMathLibrary::InRange_FloatFloat(AbsAngle, 75.0f, 105.0f))
+		{
+			MovementDirection = EMovementDirection::EMD_Rightward;
+		}
+		else if (AbsAngle > 165.0f)
+		{
+			MovementDirection = EMovementDirection::EMD_Backward;
+		}
+		else
+		{
+			MovementDirection = EMovementDirection::EMD_BR;
+		}
+	}
+	else
+	{
+		// 左半边
+		if (AbsAngle < 15.0f)
+		{
+			MovementDirection = EMovementDirection::EMD_Forward;
+		}
+		else if (UKismetMathLibrary::InRange_FloatFloat(AbsAngle, 15.0f, 75.0f, false, false))
+		{
+			MovementDirection = EMovementDirection::EMD_FL;
+		}
+		else if(UKismetMathLibrary::InRange_FloatFloat(AbsAngle, 75.0f, 105.0f))
+		{
+			MovementDirection = EMovementDirection::EMD_Leftward;
+		}
+		else if (AbsAngle > 165.0f)
+		{
+			MovementDirection = EMovementDirection::EMD_Backward;
+		} else
+		{
+			MovementDirection = EMovementDirection::EMD_BL;
+		}
+	}
+}
+
+void ABlasterCharacter::UpdateJumpState()
+{
+	if (bIsJump)
+	{
+		bool bIsInAir = IsInAir();
+		if (!bIsInAir)
+		{
+			bIsJump = false;
+		}
+	}
+}
+
+void ABlasterCharacter::UpdateMovementSpeedLevel()
+{
+	float MaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	if (MaxWalkSpeed == SprintSpeed)
+	{
+		MovementSpeedLevel = 1;
+	} else
+	{
+		MovementSpeedLevel = 0;
+	}
+}
+
+void ABlasterCharacter::UpdateMovementRotation()
+{
+
+	FollowCamera->bUsePawnControlRotation = false;
+	CameraBoom->bUsePawnControlRotation = true;
+
+	if(MovementDirection == EMovementDirection::EMD_Idle)
+	{
+		// 是否跟随控制器旋转而旋转
+		bUseControllerRotationYaw = false;
+
+		// 移动时自动旋转调整至移动方向
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	} else
+	{
+		// 是否跟随控制器旋转而旋转
+		bUseControllerRotationYaw = true;
+
+		// 移动时自动旋转调整至移动方向
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+	}
+}
+
+void ABlasterCharacter::UpdateAimOffset(float DeltaTime)
+{
+	if (MovementDirection == EMovementDirection::EMD_Idle)
+	{
+		AO_Blend = UKismetMathLibrary::FInterpTo(AO_Blend, 1, DeltaTime, AO_Blend_Speed);
+	} else
+	{
+		AO_Blend = 0.0f;
+	}
+	
+	float ControlYaw = GetControlRotation().Yaw;
+	float ControlPitch = GetControlRotation().Pitch;
+
+	if (ControlPitch > 180)
+	{
+		ControlPitch = ControlPitch - 360.0f;
+
+		float TempMaxLowPitch = MaxLowPitch * -1;
+		AO_PitchOffset = UKismetMathLibrary::MapRangeClamped(ControlPitch, TempMaxLowPitch, 0, -90, 0);
+	} else
+	{
+		AO_PitchOffset = UKismetMathLibrary::MapRangeClamped(ControlPitch, 0, MaxTopPitch, 0, 90);
+	}
+
+	float ActorYaw = GetActorRotation().Yaw;
+	if (ActorYaw < 0)
+	{
+		ActorYaw += 360.0;
+	}
+
+	float RelateControlPitch = ControlYaw - ActorYaw;
+	if (RelateControlPitch < 0)
+	{
+		RelateControlPitch += 360.0f;
+	}
+	if (RelateControlPitch > 180)
+	{
+		AO_YawOffset = RelateControlPitch - 360.0f;
+	} else
+	{
+		AO_YawOffset = RelateControlPitch;
+	}
+	
+}
+
+// void ABlasterCharacter::UpdateJumpToGroundBlend()
+// {
+// 	if (!bWasJumping)
+// 	{
+// 		return;
+// 	}
+// 	FVector RootSocketLocation = GetMesh()->GetSocketLocation(FName(TEXT("root_Socket")));
+//
+// 	FVector TraceDirection = FVector(0, 0, 1);
+// 	
+// 	FVector TraceEndLocation = RootSocketLocation + TraceDirection * JumpToGroundTraceDistance;
+//
+// 	FHitResult HitResult;
+//
+// 	TArray IgnoreActors = TArray<AActor*>();
+// 	UKismetSystemLibrary::SphereTraceSingle(GetWorld(),
+// 		RootSocketLocation,
+// 		TraceEndLocation,
+// 		20.0f,
+// 		ETraceTypeQuery::TraceTypeQuery1,
+// 		false,
+// 		IgnoreActors,
+// 		EDrawDebugTrace::ForOneFrame, 
+// 		HitResult,
+// 		true,
+// 		FColor::Green,
+// 		FColor::Red,
+// 		5.0f
+// 	);
+//
+// 	if (!HitResult.bBlockingHit)
+// 	{
+// 		JumpToGroundBlend = 0.0f;
+// 	} else
+// 	{
+// 		FVector ImpactPointLocation = HitResult.ImpactPoint;
+//
+// 		float ImpactDistance = UKismetMathLibrary::Vector_Distance(RootSocketLocation, ImpactPointLocation);
+//
+// 		JumpToGroundBlend = ImpactDistance / JumpToGroundTraceDistance;
+// 		JumpToGroundBlend = FMath::Clamp(JumpToGroundBlend, 0, 1);
+// 	}
+// }
+
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (!Weapon && OverlappingWeapon)
@@ -537,22 +734,115 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ABlasterCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ABlasterCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &ABlasterCharacter::Turn);
-	PlayerInputComponent->BindAxis("Lookup", this, &ABlasterCharacter::LookUp);
-
-	
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
-	PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
-	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ABlasterCharacter::AimButtonPressed);
-	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ABlasterCharacter::AimButtonReleased);
-
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ABlasterCharacter::FireButtonPressed);
-	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ABlasterCharacter::FireButtonReleased);
-	PlayerInputComponent->BindAction("Reload", IE_Released, this, &ABlasterCharacter::ReloadButtonPressed);
+	// PlayerInputComponent->BindAxis("MoveForward", this, &ABlasterCharacter::MoveForward);
+	// PlayerInputComponent->BindAxis("MoveRight", this, &ABlasterCharacter::MoveRight);
+	// PlayerInputComponent->BindAxis("Turn", this, &ABlasterCharacter::Turn);
+	// PlayerInputComponent->BindAxis("Lookup", this, &ABlasterCharacter::LookUp);
+	//
+	//
+	// PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
+	// PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
+	// PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
+	// PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ABlasterCharacter::AimButtonPressed);
+	// PlayerInputComponent->BindAction("Aim", IE_Released, this, &ABlasterCharacter::AimButtonReleased);
+	//
+	// PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ABlasterCharacter::FireButtonPressed);
+	// PlayerInputComponent->BindAction("Fire", IE_Released, this, &ABlasterCharacter::FireButtonReleased);
+	// PlayerInputComponent->BindAction("Reload", IE_Released, this, &ABlasterCharacter::ReloadButtonPressed);
 	// TODO 使用增强输入 EnhancedInput
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->ClearAllMappings();
+
+			Subsystem->AddMappingContext(ShootGameInputMappingContext, 0);
+		}
+	}
+
+	if (UEnhancedInputComponent* EInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		//... TODO
+
+		if (EIA_Aim)
+		{
+			// TODO - 不同武器的瞄准由武器决定，这里应该使用委托来处理
+			EInputComponent->BindAction(EIA_Aim, ETriggerEvent::Triggered, Combat, &UCombatComponent::Fire);
+		}
+
+		if (EIA_Crouch)
+		{
+			EInputComponent->BindAction(EIA_Crouch, ETriggerEvent::Triggered, this, &ThisClass::CrouchButtonPressed);
+		}
+
+		if (EIA_Discard)
+		{
+			// TODO
+		}
+
+		if (EIA_Pickup)
+		{
+			// TODO
+		}
+
+		if (EIA_Equipment)
+		{
+			// TODO
+		}
+
+		if (EIA_Jump)
+		{
+			EInputComponent->BindAction(EIA_Jump, ETriggerEvent::Triggered, this, &ThisClass::JumpButtonPressed);
+		}
+
+		if (EIA_Lookup)
+		{
+			EInputComponent->BindAction(EIA_Lookup, ETriggerEvent::Triggered, this, &ThisClass::LookUp);
+		}
+
+		if (EIA_Shoot)
+		{
+			// TODO 不需要 FireButtonReleased()
+			EInputComponent->BindAction(EIA_Shoot, ETriggerEvent::Triggered, this, &ThisClass::FireButtonPressed);
+		}
+
+		if (EIA_Sprint)
+		{
+			EInputComponent->BindAction(EIA_Sprint, ETriggerEvent::Triggered, this, &ThisClass::SprintButtonPressed);
+		}
+
+		if (EIA_UnSprint)
+		{
+			EInputComponent->BindAction(EIA_UnSprint, ETriggerEvent::Triggered, this, &ThisClass::SprintButtonReleased);
+		}
+
+		if (EIA_Turn)
+		{
+			EInputComponent->BindAction(EIA_Turn, ETriggerEvent::Triggered, this, &ThisClass::Turn);
+		}
+
+		if (EIA_MoveForward)
+		{
+			EInputComponent->BindAction(EIA_MoveForward, ETriggerEvent::Triggered, this, &ThisClass::MoveForward);
+		}
+
+		if (EIA_MoveRight)
+		{
+			EInputComponent->BindAction(EIA_MoveRight, ETriggerEvent::Triggered, this, &ThisClass::MoveRight);
+		}
+
+		if (EIA_ReloadAmmo)
+		{
+			// TODO 
+		}
+
+		if (EIA_UseSwitch)
+		{
+			// TODO
+		}
+	}
+	
 }
 
 void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,

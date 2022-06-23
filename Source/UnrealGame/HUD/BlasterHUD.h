@@ -52,8 +52,6 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	
-
 private:
 
 	FHUDPackage HudPackage;

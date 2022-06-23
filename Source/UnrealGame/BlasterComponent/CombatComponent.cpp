@@ -79,8 +79,7 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		// 显示准心 HUD
 		SetHUDCrosshairs(DeltaTime);
 
-		// 插值 FOV
-		InterpFOV(DeltaTime);
+		// 插值 FOV - 使用 Character 的 Aim 输入
 
 		
 	}
@@ -393,6 +392,7 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 	{
 		CurrentFOV = FMath::FInterpTo(CurrentFOV, EquippedWeapon->GetZoomedFOV(), DeltaTime, EquippedWeapon->GetZoomInterpSpeed());
 	}
+	
 	else
 	{
 		CurrentFOV = FMath::FInterpTo(CurrentFOV, DefaultFOV, DeltaTime, ZoomInterpSpeed);
