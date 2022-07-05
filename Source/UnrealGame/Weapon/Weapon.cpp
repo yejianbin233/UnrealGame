@@ -8,8 +8,11 @@
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
+#include "UnrealGame/Component/PickableComponent.h"
+#include "UnrealGame/Component/Collimation/CollimationComponent.h"
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
 
 // Sets default values
@@ -26,22 +29,16 @@ AWeapon::AWeapon()
 	SetRootComponent(WeaponMesh);
 
 	// 响应碰撞
-	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	WeaponMesh->SetCollisionResponseToChannel(PickableCollisionChannel, ECR_Block);
 	// 忽略指定通道的碰撞
-	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	// 默认无碰撞
-	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
+	// WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	// 默认具有碰撞
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	
-	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
-	AreaSphere->SetupAttachment(RootComponent);
-
-	AreaSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
-	PickupWidget->SetupAttachment(RootComponent);
-
+	PickableComponent = CreateDefaultSubobject<UPickableComponent>(TEXT("PickableComponent"));
+	PickableComponent->SetupAttachment(RootComponent);
+	PickableComponent->PickableAreaComponent->SetupAttachment(PickableComponent);
 	
 }
 
@@ -59,24 +56,26 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
+	AddComponentByClass(CollimationComponentClass->GetClass(), false, FTransform(), true);	
+
 	// 仅在服务器上激活武器的碰撞相关设置
 	// if(HasAuthority())
 	// {
 	// 	
 	// }
-	if (GetLocalRole() == ENetRole::ROLE_Authority)
-	{
-		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-
-		AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
-		AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
-	}
-
-	if (PickupWidget)
-	{
-		PickupWidget->SetVisibility(false);
-	}
+	// if (GetLocalRole() == ENetRole::ROLE_Authority)
+	// {
+	// 	AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	// 	AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	//
+	// 	AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
+	// 	AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
+	// }
+	//
+	// if (PickupWidget)
+	// {
+	// 	PickupWidget->SetVisibility(false);
+	// }
 }
 
 // Called every frame
@@ -86,41 +85,41 @@ void AWeapon::Tick(float DeltaTime)
 
 }
 
-void AWeapon::OnSphereOverlap(
-	UPrimitiveComponent* OverlappedComponent
-	, AActor* OtherActor
-	, UPrimitiveComponent* OtherComponent
-	, int32 OtherBodyIndex
-	, bool bFromSweep
-	, const FHitResult& SweepResult)
-{
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
-
-	if(BlasterCharacter)
-	{
-		BlasterCharacter->SetOverlappingWeapon(this);
-		
-	}
-}
-
-void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
-{
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
-
-	if(BlasterCharacter)
-	{
-		BlasterCharacter->SetOverlappingWeapon(nullptr);
-	}
-}
+// void AWeapon::OnSphereOverlap(
+// 	UPrimitiveComponent* OverlappedComponent
+// 	, AActor* OtherActor
+// 	, UPrimitiveComponent* OtherComponent
+// 	, int32 OtherBodyIndex
+// 	, bool bFromSweep
+// 	, const FHitResult& SweepResult)
+// {
+// 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
+//
+// 	if(BlasterCharacter)
+// 	{
+// 		BlasterCharacter->SetOverlappingWeapon(this);
+// 		
+// 	}
+// }
+//
+// void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+// 	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
+// {
+// 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
+//
+// 	if(BlasterCharacter)
+// 	{
+// 		BlasterCharacter->SetOverlappingWeapon(nullptr);
+// 	}
+// }
 
 void AWeapon::OnRep_WeaponState()
 {
 	switch (WeaponState)
 	{
 		case EWeaponState::EWS_Equipped:
-			ShowPickupWidget(false);
-			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			// ShowPickupWidget(false);
+			// AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			WeaponMesh->SetSimulatePhysics(false);
 			WeaponMesh->SetEnableGravity(false);
 			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -141,8 +140,8 @@ void AWeapon::SetWeaponState(EWeaponState InWeaponState)
 	switch (WeaponState)
 	{
 		case EWeaponState::EWS_Equipped:
-			ShowPickupWidget(false);
-			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			// ShowPickupWidget(false);
+			// AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			WeaponMesh->SetSimulatePhysics(false);
 			WeaponMesh->SetEnableGravity(false);
 			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -151,7 +150,7 @@ void AWeapon::SetWeaponState(EWeaponState InWeaponState)
 		case EWeaponState::EWS_Dropped:
 			if (HasAuthority())
 			{
-				AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+				// AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 			}
 			WeaponMesh->SetSimulatePhysics(true);
 			WeaponMesh->SetEnableGravity(true);
@@ -167,13 +166,13 @@ bool AWeapon::IsEmpty()
 }
 
 
-void AWeapon::ShowPickupWidget(bool bIsShowWidget)
-{
-	if (PickupWidget)
-	{
-		PickupWidget->SetVisibility(bIsShowWidget);
-	}
-}
+// void AWeapon::ShowPickupWidget(bool bIsShowWidget)
+// {
+// 	if (PickupWidget)
+// 	{
+// 		PickupWidget->SetVisibility(bIsShowWidget);
+// 	}
+// }
 
 void AWeapon::Fire(const FVector& HitTarget)
 {
@@ -203,7 +202,12 @@ void AWeapon::Fire(const FVector& HitTarget)
 		}
 	}
 
-	SpendRound();
+	// SpendRound();
+}
+
+void AWeapon::AutoFire()
+{
+
 }
 
 void AWeapon::OnRep_Owner()
@@ -217,24 +221,24 @@ void AWeapon::OnRep_Owner()
 	}
 	else
 	{
-		SetHUDAmmo();
+		// SetHUDAmmo();
 	}
 }
 
-void AWeapon::SetHUDAmmo()
-{
-	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
-
-	if (BlasterOwnerCharacter)
-	{
-		BlasterPlayerOwnerController = BlasterPlayerOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->GetController()) : BlasterPlayerOwnerController;
-
-		if (BlasterPlayerOwnerController)
-		{
-			BlasterPlayerOwnerController->SetHUDWeaponAmmo(Ammo);
-		}
-	}
-}
+// void AWeapon::SetHUDAmmo()
+// {
+// 	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+//
+// 	if (BlasterOwnerCharacter)
+// 	{
+// 		BlasterPlayerOwnerController = BlasterPlayerOwnerController == nullptr ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->GetController()) : BlasterPlayerOwnerController;
+//
+// 		if (BlasterPlayerOwnerController)
+// 		{
+// 			BlasterPlayerOwnerController->SetHUDWeaponAmmo(Ammo);
+// 		}
+// 	}
+// }
 
 void AWeapon::Dropped()
 {
@@ -252,21 +256,21 @@ void AWeapon::Dropped()
 	BlasterPlayerOwnerController = nullptr;
 }
 
-void AWeapon::AddAmmo(int32 AmmoToAdd)
-{
-	Ammo = FMath::Clamp(Ammo-AmmoToAdd, 0, MagCapacity);
-}
-
-void AWeapon::OnRep_Ammo()
-{
-	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
-
-	SetHUDAmmo();
-}
-
-void AWeapon::SpendRound()
-{
-	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
-	
-	SetHUDAmmo();
-}
+// void AWeapon::AddAmmo(int32 AmmoToAdd)
+// {
+// 	Ammo = FMath::Clamp(Ammo-AmmoToAdd, 0, MagCapacity);
+// }
+//
+// void AWeapon::OnRep_Ammo()
+// {
+// 	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+//
+// 	SetHUDAmmo();
+// }
+//
+// void AWeapon::SpendRound()
+// {
+// 	Ammo = FMath::Clamp(Ammo - 1, 0, MaxReloadAmmoAmount);
+// 	
+// 	SetHUDAmmo();
+// }

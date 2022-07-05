@@ -107,7 +107,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	}
 	
 	EquippedWeapon->SetOwner(BlasterCharacter);
-	EquippedWeapon->SetHUDAmmo();
+	// EquippedWeapon->SetHUDAmmo();
 
 	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
 	{
@@ -177,7 +177,7 @@ void UCombatComponent::UpdateAmmoValues()
 		BlasterPlayerController->SetHUDCarriedAmmo(CarriedAmmo);
 	}
 	
-	EquippedWeapon->AddAmmo(ReloadAmount);
+	// EquippedWeapon->AddAmmo(ReloadAmount);
 }
 
 void UCombatComponent::HandleReload()
@@ -192,7 +192,7 @@ int32 UCombatComponent::AmountToReload()
 		return 0;
 	}
 
-	int32 RoomInMag = EquippedWeapon->GetMagCapacity() - EquippedWeapon->GetAmmo();
+	int32 RoomInMag = EquippedWeapon->GetMaxReloadAmmoAmount() - EquippedWeapon->GetAmmo();
 
 	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
 	{
@@ -243,11 +243,11 @@ void UCombatComponent::SetHUDCrosshairs(float DeltaTime)
 		{
 			if (EquippedWeapon)
 			{
-				HUDPackage.CrosshairsCenter = EquippedWeapon->CrosshairsCenter;
-				HUDPackage.CrosshairsTop = EquippedWeapon->CrosshairsTop;
-				HUDPackage.CrosshairsLeft = EquippedWeapon->CrosshairsLeft;
-				HUDPackage.CrosshairsBottom = EquippedWeapon->CrosshairsBottom;
-				HUDPackage.CrosshairsRight = EquippedWeapon->CrosshairsRight;
+				// HUDPackage.CrosshairsCenter = EquippedWeapon->CrosshairsCenter;
+				// HUDPackage.CrosshairsTop = EquippedWeapon->CrosshairsTop;
+				// HUDPackage.CrosshairsLeft = EquippedWeapon->CrosshairsLeft;
+				// HUDPackage.CrosshairsBottom = EquippedWeapon->CrosshairsBottom;
+				// HUDPackage.CrosshairsRight = EquippedWeapon->CrosshairsRight;
 			}
 			else
 			{
@@ -333,11 +333,11 @@ void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
 			float DistanceToCharacter = (BlasterCharacter->GetActorLocation() - Start).Size();
 			Start += CrosshairWorldDirection * (DistanceToCharacter + 100.0f);
 
-			DrawDebugSphere(GetWorld(), Start, 16.0f, 12, FColor::Red, false);
+			// DrawDebugSphere(GetWorld(), Start, 16.0f, 12, FColor::Red, false);
 		}
 
 		FVector End = Start + CrosshairWorldDirection * TRACE_LENGTH;
-		
+
 		GetWorld()->LineTraceSingleByChannel(
 				TraceHitResult
 				, Start

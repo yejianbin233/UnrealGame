@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Casing.generated.h"
 
+// 子弹壳
 UCLASS()
 class UNREALGAME_API ACasing : public AActor
 {

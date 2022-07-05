@@ -20,6 +20,7 @@ enum class EWeaponState : uint8
 };
 
 
+// TODO 改为枪武器类型
 UCLASS()
 class UNREALGAME_API AWeapon : public AActor
 {
@@ -34,130 +35,114 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void ShowPickupWidget(bool bIsShowWidget);
-
-	virtual void Fire(const FVector& HitTarget);
-
-	virtual void OnRep_Owner() override;
-
-	void SetHUDAmmo();
-
-	// 当被淘汰时，丢掉武器
 	// TODO 当死亡时，不应该直接丢弃武器，而是类似吃鸡掉盒子，武器可以直接扔。
+	// 当被淘汰时，丢掉武器
 	void Dropped();
 
-	void AddAmmo(int32 AmmoToAdd);
+	// void SetHUDAmmo();
 
-	// 准心由 5 个部分组成
-	// 纹理压缩设置"用户界面2D"
-	UPROPERTY(EditAnywhere, Category = "Crosshairs")
-	class UTexture2D* CrosshairsCenter;
+	// void AddAmmo(int32 AmmoToAdd);
 
-	UPROPERTY(EditAnywhere, Category = "Crosshairs")
-	class UTexture2D* CrosshairsTop;
+	// void ShowPickupWidget(bool bIsShowWidget);
 
-	UPROPERTY(EditAnywhere, Category = "Crosshairs")
-	class UTexture2D* CrosshairsLeft;
+	/* 射击功能 */
+	virtual void Fire(const FVector& HitTarget);
 
-	UPROPERTY(EditAnywhere, Category = "Crosshairs")
-	class UTexture2D* CrosshairsBottom;
+	virtual void AutoFire();
+	/* 射击功能 */
+
+public:
+
+	UPROPERTY(EditDefaultsOnly, Category="Component")
+	TSubclassOf<class UCollimationComponent> CollimationComponentClass;
 	
-	UPROPERTY(EditAnywhere, Category = "Crosshairs")
-	class UTexture2D* CrosshairsRight;
+	UPROPERTY(VisibleAnywhere, Category="Component")
+	class UPickableComponent* PickableComponent;
 
 	/*
 	 * 在瞄准时放大视野(FOV)
 	 */
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Aim Properties")
 	float ZoomedFOV = 30.0f;
 
 	/*
 	 * 放大视野的插值过渡速度
 	 */
+	UPROPERTY(EditAnywhere, Category="Aim Properties")
 	float ZoomInterpSpeed = 20.0f;
 
 	/*
-	 * 自动开火的延迟时间
+	 * 射击开火的延迟时间
 	 */ 
-	UPROPERTY(EditAnywhere, Category="Combat", meta=(AllowPrivateAccess=true))
-	float FireDelay=0.15f;
+	UPROPERTY(EditAnywhere, Category="Shot Properties", meta=(AllowPrivateAccess=true))
+	float FireDelay = 0.15f;
 
-	UPROPERTY(EditAnywhere, Category="Combat", meta=(AllowPrivateAccess=true))
-	bool bAutomatic=true;
+	/*
+	 * 是否允许自动射击
+	 */
+	UPROPERTY(EditAnywhere, Category="Shot Properties", meta=(AllowPrivateAccess=true))
+	bool bAutomatic = true;
 	
 protected:
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
+	/* 网络复制 */
 
-	UFUNCTION()
-	virtual void OnSphereOverlap(
-		UPrimitiveComponent* OverlappedComponent,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComponent,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult
-	);
-
-	UFUNCTION()
-	void OnSphereEndOverlap(
-		UPrimitiveComponent* OverlappedComponent,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComponent,
-		int32 OtherBodyIndex
-	);
-
-	UPROPERTY()
-	class ABlasterCharacter* BlasterOwnerCharacter;
-	UPROPERTY()
-	class ABlasterPlayerController* BlasterPlayerOwnerController;
-
-private:
-
-	// 武器类具有骨骼网格体
-	UPROPERTY(VisibleAnywhere, Category="Weapon Properties")
-	class USkeletalMeshComponent* WeaponMesh;
-
-	// 作用：碰撞区域内武器可拾取
-	UPROPERTY(VisibleAnywhere, Category="Weapon Properties")
-	class USphereComponent* AreaSphere;
-
-	UPROPERTY(ReplicatedUsing="OnRep_WeaponState", VisibleAnywhere, Category="Weapon Properties")
-	EWeaponState WeaponState;
-
-	UFUNCTION()
-	void OnRep_WeaponState();	
-
-	UPROPERTY(VisibleAnywhere, Category="Weapon Properties")
-	class UWidgetComponent* PickupWidget;
-
-	UPROPERTY(EditAnywhere, Category="Weapon Properties")
-	class UAnimationAsset* FireAnimtion;
-
-	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-	TSubclassOf<class ACasing> CasingClass;
-
-	// 子弹
-	UPROPERTY(EditAnywhere, ReplicatedUsing="OnRep_Ammo")
-	int32 Ammo;
+	virtual void OnRep_Owner() override;
 
 	// 当 Ammo 数量更新时，更新 HUD
+	// UFUNCTION()
+	// void OnRep_Ammo();
+
 	UFUNCTION()
-	void OnRep_Ammo();
+	void OnRep_WeaponState();
 
-	void SpendRound();
+	/* 网络复制 */
 
-	UPROPERTY(EditAnywhere)
-	int32 MagCapacity;
+	// void SpendRound();
 
-	UPROPERTY(EditAnywhere)
+	
+private:
+
+	class ABlasterCharacter* BlasterOwnerCharacter;
+	
+	class ABlasterPlayerController* BlasterPlayerOwnerController;
+	// 枪骨骼网格体
+	UPROPERTY(VisibleAnywhere, Category="Gun Properties")
+	class USkeletalMeshComponent* WeaponMesh;
+
+	// 武器状态
+	UPROPERTY(ReplicatedUsing="OnRep_WeaponState", VisibleAnywhere, Category="Gun Properties")
+	EWeaponState WeaponState;
+
+	// 射击动画
+	UPROPERTY(EditAnywhere, Category="Gun Properties")
+	class UAnimationAsset* FireAnimtion;
+
+	// 射击消耗完毕后的子弹弹射
+	UPROPERTY(EditAnywhere, Category = "Ammo Properties")
+	TSubclassOf<class ACasing> CasingClass;
+
+	// 装弹数量
+	UPROPERTY(Replicated, EditAnywhere, Category = "Ammo Properties")
+	int32 Ammo;
+
+	// 最大装弹数量
+	UPROPERTY(EditAnywhere, Category = "Ammo Properties")
+	int32 MaxReloadAmmoAmount;
+
+	// 武器类型
+	UPROPERTY(EditAnywhere, Category="Gun Properties")
 	EWeaponType WeaponType;
+
+	UPROPERTY(EditAnywhere, Category="Pickable Properties")
+	TEnumAsByte<ECollisionChannel> PickableCollisionChannel;
 	
 public:	
 	
 	void SetWeaponState(EWeaponState InWeaponState);
-
-	FORCEINLINE USphereComponent* GetAreaSphereComponent(){ return AreaSphere; }
 
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const {return WeaponMesh;}
 
@@ -169,7 +154,7 @@ public:
 
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 
-	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity;  }
+	FORCEINLINE int32 GetMaxReloadAmmoAmount() const { return MaxReloadAmmoAmount;  }
 
 	bool IsEmpty();
 };

@@ -107,6 +107,10 @@ protected:
 	void FireButtonReleased();
 
 	void ReloadButtonPressed();
+
+	void OpenOrCloseBackpack();
+	
+	void Pickup();
 	
 	/* 玩家输入处理函数 */
 
@@ -123,6 +127,10 @@ protected:
 
 	// 玩家 Playerstate
 	void PollInit();
+
+
+public:
+	bool bHasPickableObject;
 	
 private:
 
@@ -142,6 +150,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
 	class UWidgetComponent* OverheadWidget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包组件", meta=(AllowPrivateAccess=true))
+	class UBackpackComponent* BackpackComponent;
+
 	// 武器组件
 	UPROPERTY(ReplicatedUsing="OnRep_OverlappingWeapon")
 	class AWeapon* OverlappingWeapon;
@@ -149,6 +160,8 @@ private:
 	// 战斗组件
 	UPROPERTY(VisibleAnywhere)
 	class UCombatComponent* Combat;
+
+	
 
 	/**
 	 * 成员属性
@@ -260,6 +273,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
 	TObjectPtr<UInputAction> EIA_Lookup;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	TObjectPtr<UInputAction> EIA_OpenOrCloseBackpack;
 	/* Enhanced Input  */
 
 
@@ -324,6 +340,21 @@ private:
 	UPROPERTY(EditAnywhere, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float AO_Blend_Speed = 1;
 	
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	float PickupTraceStartOffset = 100;
+	
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	float PickupTraceRadius = 10;
+	
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	float PickupTraceDistance = 100;
+
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	TEnumAsByte<ETraceTypeQuery> PickableTraceTypeQuery;
+
+	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess))
+	AActor* CurrentPickableActor;
+	
 private:
 	/*
 	 * 函数
@@ -374,6 +405,8 @@ private:
 
 	void UpdateAimOffset(float DeltaTime);
 
+	void TracePickableOjbect();
+
 public:
 	/*
 		 * @description:
@@ -387,7 +420,9 @@ public:
 		 */
 	UFUNCTION(BlueprintImplementableEvent)
 	void UpdateJumpToGroundBlend();
-	
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void PickableObjectTrace(FVector Start, FVector End, FHitResult HitResult);
 	/* Weapon 武器 */
 	void SetOverlappingWeapon(AWeapon* Weapon);
 

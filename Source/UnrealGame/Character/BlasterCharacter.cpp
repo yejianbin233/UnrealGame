@@ -20,7 +20,10 @@
 #include "UnrealGame/PlayerState/BlasterPlayerState.h"
 #include "EnhancedInput/Public/EnhancedInputSubsystems.h"
 #include "EnhancedInput/Public/EnhancedInputComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "UnrealGame/HUD/Backpack/BackpackComponent.h"
+#include "UnrealGame/HUD/Backpack/ItemBase.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -45,7 +48,9 @@ ABlasterCharacter::ABlasterCharacter()
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
 	Combat->SetIsReplicated(true);
 
-
+	BackpackComponent = CreateDefaultSubobject<UBackpackComponent>(TEXT("BackpackComponent"));
+	BackpackComponent->SetIsReplicated(true);
+	
 	// 设置移动组件可蹲伏
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
@@ -123,6 +128,8 @@ void ABlasterCharacter::Tick(float DeltaTime)
 	UpdateMovementRotation();
 
 	UpdateAimOffset(DeltaTime);
+	
+	TracePickableOjbect();
 }
 
 void ABlasterCharacter::PlayFireMontage(bool bIsAiming)
@@ -208,8 +215,8 @@ void ABlasterCharacter::MoveForward(const FInputActionValue& ActionValue)
 		
 		const FVector Direction(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X));
 
-		DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Green, false, 1);
-		DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Green, false, 1);
+		// DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Green, false, 1);
+		// DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Green, false, 1);
 		AddMovementInput(Direction, Value);
 	}
 }
@@ -237,8 +244,8 @@ void ABlasterCharacter::MoveRight(const FInputActionValue& ActionValue)
 
 		const FVector Direction(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y));
 
-		DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Red, false, 1);
-		DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Red, false, 1);
+		// DrawDebugSphere(GetWorld(), GetActorLocation(), 10, 10, FColor::Red, false, 1);
+		// DrawDebugSphere(GetWorld(), GetActorLocation()+Direction*100, 10, 10, FColor::Red, false, 1);
 		AddMovementInput(Direction, Value);
 	}
 }
@@ -417,6 +424,40 @@ void ABlasterCharacter::ReloadButtonPressed()
 	}
 }
 
+void ABlasterCharacter::OpenOrCloseBackpack()
+{
+	BackpackComponent->OpenOrCloseBackpack();
+}
+
+void ABlasterCharacter::Pickup()
+{
+	bool Successded = false;
+	
+	if (CurrentPickableActor)
+	{
+		AItemBase* Item = Cast<AItemBase>(CurrentPickableActor);
+
+		if (ensure(Item))
+		{
+			// FBackpackItemInfo BackpackItemInfo = NewObject<FBackpackItemInfo>(this, TEXT("BackpackItemInfo"));
+			FBackpackItemInfo BackpackItemInfo = Item->GetBackpackItemInfo();
+			
+			Successded = BackpackComponent->TryAddItem(&BackpackItemInfo);
+
+			if (!Successded && BackpackItemInfo.CanRotate())
+			{
+				BackpackItemInfo.Rotate();
+				Successded = BackpackComponent->TryAddItem(&BackpackItemInfo);
+			}
+
+			if (Successded)
+			{
+				CurrentPickableActor->Destroy(true);
+			}
+		}
+	}
+}
+
 void ABlasterCharacter::ServerEquipButtomPressed_Implementation()
 {
 	if (Combat)
@@ -431,12 +472,12 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 	// 当碰撞重叠时，设置 OverlappingWeapon 并调整可视性
 	if (OverlappingWeapon)
 	{
-		OverlappingWeapon->ShowPickupWidget(true);
+		// OverlappingWeapon->ShowPickupWidget(true);
 	}
 	// 当碰撞重叠结束时，OverlappingWeapon 被设置为 nullptr，那么可以使用 LastWeapon 来设置 OverlappingWeapon 不可视
 	else if (LastWeapon)
 	{
-		LastWeapon->ShowPickupWidget(false);		
+		// LastWeapon->ShowPickupWidget(false);		
 	}
 }
 
@@ -637,6 +678,50 @@ void ABlasterCharacter::UpdateAimOffset(float DeltaTime)
 	
 }
 
+void ABlasterCharacter::TracePickableOjbect()
+{
+	if (bHasPickableObject)
+	{
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+		if (ensure(PlayerController))
+		{
+			FVector2D ViewportSize;
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+
+			FVector2D CrosshairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
+			
+			FVector WorldLocation;
+			FVector WorldDirection;
+			UGameplayStatics::DeprojectScreenToWorld(PlayerController, CrosshairLocation, WorldLocation, WorldDirection);
+
+			FVector TraceStartLocation = WorldLocation + (WorldDirection * PickupTraceStartOffset);
+			FVector TraceEndLocation = WorldLocation + (WorldDirection * PickupTraceDistance);
+			TArray<AActor*> IgnoreActors;
+			FHitResult HitResult;
+			
+			UKismetSystemLibrary::SphereTraceSingle(GetWorld(),
+				TraceStartLocation,
+				TraceEndLocation,
+				PickupTraceRadius,
+				PickableTraceTypeQuery,
+				false,
+				IgnoreActors,
+				EDrawDebugTrace::ForOneFrame,
+				HitResult,
+				true);
+
+			if (HitResult.bBlockingHit)
+			{
+				CurrentPickableActor = HitResult.GetActor();
+			} else
+			{
+				CurrentPickableActor = nullptr;
+			}
+		}
+	}
+}
+
 // void ABlasterCharacter::UpdateJumpToGroundBlend()
 // {
 // 	if (!bWasJumping)
@@ -685,7 +770,7 @@ void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (!Weapon && OverlappingWeapon)
 	{
-		OverlappingWeapon->ShowPickupWidget(false);
+		// OverlappingWeapon->ShowPickupWidget(false);
 	}
 	
 	OverlappingWeapon = Weapon;
@@ -694,7 +779,7 @@ void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 	{
 		if (OverlappingWeapon)
 		{
-			OverlappingWeapon->ShowPickupWidget(true);
+			// OverlappingWeapon->ShowPickupWidget(true);
 		}
 	}
 }
@@ -783,7 +868,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Pickup)
 		{
-			// TODO
+			EInputComponent->BindAction(EIA_Pickup, ETriggerEvent::Triggered, this, &ThisClass::Pickup);
 		}
 
 		if (EIA_Equipment)
@@ -840,6 +925,11 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		if (EIA_UseSwitch)
 		{
 			// TODO
+		}
+
+		if (EIA_OpenOrCloseBackpack)
+		{
+			EInputComponent->BindAction(EIA_OpenOrCloseBackpack, ETriggerEvent::Triggered, this, &ThisClass::OpenOrCloseBackpack);
 		}
 	}
 	

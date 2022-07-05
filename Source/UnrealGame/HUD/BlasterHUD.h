@@ -4,22 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "UnrealGame/Component/Collimation/CrosshairComponent.h"
 #include "BlasterHUD.generated.h"
 
-USTRUCT(BlueprintType)
-struct FHUDPackage
-{
-	GENERATED_BODY()
 
-public:
-	class UTexture2D* CrosshairsCenter;
-	class UTexture2D* CrosshairsTop;
-	class UTexture2D* CrosshairsLeft;
-	class UTexture2D* CrosshairsBottom;
-	class UTexture2D* CrosshairsRight;
-	float CrosshairSpread;
-	FLinearColor CrosshairsColor;
-};
 /**
  * 
  */
@@ -54,7 +42,7 @@ protected:
 
 private:
 
-	FHUDPackage HudPackage;
+	FCrosshairHUDPackage HudPackage;
 
 	void DrawCrosshair(UTexture2D* Texture2D, FVector2D ViewportLocation, FVector2D Spread, FLinearColor CrosshairsColor);
 
@@ -63,5 +51,5 @@ private:
 
 public:
 
-	FORCEINLINE void SetHUDPackage(const FHUDPackage& Package) { HudPackage = Package;};
+	FORCEINLINE void SetHUDPackage(const FCrosshairHUDPackage& Package) { HudPackage = Package;};
 };

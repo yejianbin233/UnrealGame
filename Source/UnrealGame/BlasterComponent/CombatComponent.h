@@ -102,7 +102,7 @@ private:
 
 	FVector HitTarget;
 
-	FHUDPackage HUDPackage;
+	FCrosshairHUDPackage HUDPackage;
 
 	/*
 	 * 瞄准和视野
