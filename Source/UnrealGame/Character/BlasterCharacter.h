@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/Enums/WeaponTypes.h"
+#include "UnrealGame/HUD/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Interfaces/InteractWithCrosshairsInterface.h"
 #include "BlasterCharacter.generated.h"
 
@@ -72,6 +73,23 @@ public:
 
 	// 死亡处理
 	void Elim();
+
+
+	/*
+	 * @description:GetItemInfoFromTable - 从物品数据表获取物品数据
+	 * @param Id - 物品的唯一Id
+	 *	
+	 * @return FItemInfo - 物品数据结构
+	 * ...
+	 *
+	 *	note：TODO 临时放置，便于获取数据表
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 19:07:52
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
+	FItemInfo GetItemInfoFromTable(FName Id);
 	
 protected:
 	// Called when the game starts or when spawned
@@ -109,6 +127,14 @@ protected:
 	void ReloadButtonPressed();
 
 	void OpenOrCloseBackpack();
+
+	/*
+	 * @description: RotateDragItemWidget - 用于处理用户输入，旋转正在拖动的物品控件
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 19:07:10
+	 */
+	void RotateDragItemWidget();
 	
 	void Pickup();
 	
@@ -276,6 +302,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
 	TObjectPtr<UInputAction> EIA_OpenOrCloseBackpack;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	TObjectPtr<UInputAction> EIA_RotateDragItemWidget;
 	/* Enhanced Input  */
 
 

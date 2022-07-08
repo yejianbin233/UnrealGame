@@ -23,6 +23,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UnrealGame/HUD/Backpack/BackpackComponent.h"
+#include "UnrealGame/HUD/Backpack/BackpackWidget.h"
 #include "UnrealGame/HUD/Backpack/ItemBase.h"
 
 ABlasterCharacter::ABlasterCharacter()
@@ -426,7 +427,21 @@ void ABlasterCharacter::ReloadButtonPressed()
 
 void ABlasterCharacter::OpenOrCloseBackpack()
 {
-	BackpackComponent->OpenOrCloseBackpack();
+	if (BackpackComponent)
+	{
+		BackpackComponent->OpenOrCloseBackpack();
+	}
+}
+
+void ABlasterCharacter::RotateDragItemWidget()
+{
+	if (BackpackComponent)
+	{
+		if (BackpackComponent->BackpackWidget)
+		{
+			BackpackComponent->BackpackWidget->RotateDragItemWidget();
+		}
+	}
 }
 
 void ABlasterCharacter::Pickup()
@@ -442,17 +457,26 @@ void ABlasterCharacter::Pickup()
 			// FBackpackItemInfo BackpackItemInfo = NewObject<FBackpackItemInfo>(this, TEXT("BackpackItemInfo"));
 			FBackpackItemInfo BackpackItemInfo = Item->GetBackpackItemInfo();
 			
-			Successded = BackpackComponent->TryAddItem(&BackpackItemInfo);
+			Successded = BackpackComponent->TryAddItem(BackpackItemInfo);
 
 			if (!Successded && BackpackItemInfo.CanRotate())
 			{
+				// 旋转物品
 				BackpackItemInfo.Rotate();
-				Successded = BackpackComponent->TryAddItem(&BackpackItemInfo);
+				Successded = BackpackComponent->TryAddItem(BackpackItemInfo);
 			}
 
 			if (Successded)
 			{
 				CurrentPickableActor->Destroy(true);
+			}
+			else
+			{
+				if (BackpackItemInfo.bIsRotated)
+				{
+					// 复原旋转
+					BackpackItemInfo.Rotate();
+				}
 			}
 		}
 	}
@@ -930,6 +954,11 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		if (EIA_OpenOrCloseBackpack)
 		{
 			EInputComponent->BindAction(EIA_OpenOrCloseBackpack, ETriggerEvent::Triggered, this, &ThisClass::OpenOrCloseBackpack);
+		}
+
+		if (EIA_RotateDragItemWidget)
+		{
+			EInputComponent->BindAction(EIA_RotateDragItemWidget, ETriggerEvent::Triggered, this, &ThisClass::RotateDragItemWidget);
 		}
 	}
 	

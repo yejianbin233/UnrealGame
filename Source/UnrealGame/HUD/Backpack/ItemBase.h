@@ -26,10 +26,16 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
+public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pickup", DisplayName="可拾取组件")
 	class UPickableComponent* PickableComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pickup", DisplayName="物品骨骼网格体组件")
+	class USkeletalMeshComponent* SkeletalMeshComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pickup", DisplayName="物品静态网格体组件")
+	class UStaticMeshComponent* StaticMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item Info", DisplayName="物品信息")
 	FSceneItemInfo SceneItemInfo;

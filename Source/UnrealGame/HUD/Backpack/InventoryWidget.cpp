@@ -7,6 +7,8 @@
 #include "ItemWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/SizeBox.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 void UInventoryWidget::Init(UBackpackComponent* InBackpackComponent)
@@ -22,6 +24,7 @@ void UInventoryWidget::Init(UBackpackComponent* InBackpackComponent)
 
 		Refresh();
 
+		BackpackComponent->BackpackInventoryWidget = this;
 		BackpackComponent->OnBackpackItemChanged.AddUObject(this, &ThisClass::Refresh);
 	}
 }
@@ -44,7 +47,7 @@ void UInventoryWidget::InitLinks()
 	float RowLength = Column * CellSize;
 	float ColumnLength = Row * CellSize;
 	
-	for (int RowIndex=0; RowIndex < Row; RowIndex++)
+	for (int RowIndex=0; RowIndex <= Row; RowIndex++)
 	{
 		FVector2D Start;
 		Start.X = 0;
@@ -60,7 +63,7 @@ void UInventoryWidget::InitLinks()
 		Links.Add(Link);
 	}
 	
-	for (int ColumnIndex=0; ColumnIndex < Column; ColumnIndex++)
+	for (int ColumnIndex=0; ColumnIndex <= Column; ColumnIndex++)
 	{
 		FVector2D Start;
 		Start.X = CellSize * ColumnIndex;
@@ -75,8 +78,6 @@ void UInventoryWidget::InitLinks()
 
 		Links.Add(Link);
 	}
-
-	
 }
 
 void UInventoryWidget::Refresh()
@@ -94,19 +95,39 @@ void UInventoryWidget::Refresh()
 		{
 			FPositionItem IndexItem = PositionItems[Index];
 
-			UItemWidget* ItemWidget =  Cast<UItemWidget>(CreateWidget(GetOwningPlayer(), InventoryUIClass));
+			UItemWidget* ItemWidget =  CreateItemWidget(IndexItem.Position, *IndexItem.Item);
 			
-			ItemWidget->Init(*IndexItem.Item, IndexItem.Position);
-
 			UCanvasPanelSlot* ItemCanvasPanelSlot = BackpackContent->AddChildToCanvas(ItemWidget);
 
-			FVector2D Position(ItemWidget->Position.X * CellSize, ItemWidget->Position.Y * CellSize);
-			ItemCanvasPanelSlot->SetPosition(Position);
+			FVector2D Position(IndexItem.Position.X * CellSize, IndexItem.Position.Y * CellSize);
 
-			FVector2D Size;
-			Size.X = IndexItem.Item->OccupyCellXYLength.X * CellSize;
-			Size.Y = IndexItem.Item->OccupyCellXYLength.Y * CellSize;
-			ItemCanvasPanelSlot->SetSize(Size);
+			ItemCanvasPanelSlot->SetPosition(Position);
+			ItemCanvasPanelSlot->SetAutoSize(true);
 		}
 	}
 }
+
+bool UInventoryWidget::IsValidBackpackArea(FVector2D LeftTopPoint, FVector2D RightBottomPoint, float EdgeSize)
+{
+	int Column = BackpackComponent->Column;
+	int Row = BackpackComponent->Row;
+
+	float BackpackColumnLength = Column * CellSize + EdgeSize;
+	float BackpackRowLength = Row * CellSize  + EdgeSize;
+
+	float Min = 0 - EdgeSize;
+	
+	bool LeftTopX = UKismetMathLibrary::InRange_FloatFloat(LeftTopPoint.X, Min, BackpackColumnLength, true, true);
+	bool LeftTopY = UKismetMathLibrary::InRange_FloatFloat(LeftTopPoint.Y, Min, BackpackRowLength, true, true);
+
+	bool RightBottomX = UKismetMathLibrary::InRange_FloatFloat(RightBottomPoint.X, Min, BackpackColumnLength, true, true);
+	bool RightBottomY = UKismetMathLibrary::InRange_FloatFloat(RightBottomPoint.Y, Min, BackpackRowLength, true, true);
+
+	// UE_LOG(LogTemp, Warning, TEXT("Min: %f"), Min);
+	// UE_LOG(LogTemp, Warning, TEXT("BackpackColumnLength: %f    --  BackpackRowLength: %f"), BackpackColumnLength, BackpackRowLength);
+	// UE_LOG(LogTemp, Warning, TEXT("LeftTopX: %f    --  LeftTopY: %f"), LeftTopPoint.X, LeftTopPoint.Y);
+	// UE_LOG(LogTemp, Warning, TEXT("RightBottomX: %f    --  RightBottomY: %f"), RightBottomPoint.X, RightBottomPoint.Y);
+	
+	return LeftTopX && LeftTopY && RightBottomX && RightBottomY;
+}
+

@@ -46,13 +46,6 @@ void UPickableComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 void UPickableComponent::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// TODO
-	// GEngine->AddOnScreenDebugMessage(-1,
-	// 	1,
-	// 	FColor::Green,
-	// 	FString::Printf(TEXT("BeginOverlap"))
-	// );
-
 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 	if (ensure(BlasterCharacter))
 	{
@@ -63,12 +56,6 @@ void UPickableComponent::OnComponentBeginOverlap(UPrimitiveComponent* Overlapped
 void UPickableComponent::OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	// TODO
-	// GEngine->AddOnScreenDebugMessage(-1,
-	// 	1,
-	// 	FColor::Green,
-	// 	FString::Printf(TEXT("EndOverlap"))
-	// );
 	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 	if (ensure(BlasterCharacter))
 	{
@@ -90,6 +77,8 @@ void UPickableComponent::UpdatePickupState(EPickupState InPickupState)
 		PickableAreaComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		PickableAreaComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	}
+
+	PickableAreaComponent->SetSphereRadius(Radius);
 }
 
 

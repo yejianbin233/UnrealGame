@@ -46,6 +46,9 @@ public:
 
 	EPickupState PickupState;
 
+	UPROPERTY(EditAnywhere, Category="Weapon Properties")
+	float Radius=50;
+
 private:
 	
 	FDelegateHandle OnComponentBeginOverlapDelegateHandle;
