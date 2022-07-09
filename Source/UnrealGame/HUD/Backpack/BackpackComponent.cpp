@@ -466,13 +466,13 @@ void UBackpackComponent::CreateItemAfterDiscard(FString Id)
 
 		FItemInfo ItemInfo = BlasterCharacter->GetItemInfoFromTable(FName(Id));
 
-		if (ItemInfo.ItemBaseClass != nullptr)
+		if (ItemInfo.ItemClass != nullptr)
 		{
-			if (ItemInfo.ItemBaseClass->GetClass() != nullptr)
+			if (ItemInfo.ItemClass->GetClass() != nullptr)
 			{
-				AItemBase* Item = GetWorld()->SpawnActor<AItemBase>(ItemInfo.ItemBaseClass, PlayerLocation, FRotator(0.f));
+				AItemBase* Item = GetWorld()->SpawnActor<AItemBase>(ItemInfo.ItemClass, PlayerLocation, FRotator(0.f));
 
-				Item->InitMesh(ItemInfo);
+				Item->Init(ItemInfo);
 			}
 		}
 		

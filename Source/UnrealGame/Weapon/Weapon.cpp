@@ -11,7 +11,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
-#include "UnrealGame/Component/PickableComponent.h"
 #include "UnrealGame/Component/Collimation/CollimationComponent.h"
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
 
@@ -35,10 +34,6 @@ AWeapon::AWeapon()
 	// WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
 	// 默认具有碰撞
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	
-	PickableComponent = CreateDefaultSubobject<UPickableComponent>(TEXT("PickableComponent"));
-	PickableComponent->SetupAttachment(RootComponent);
-	PickableComponent->PickableAreaComponent->SetupAttachment(PickableComponent);
 	
 }
 

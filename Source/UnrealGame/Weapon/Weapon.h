@@ -56,8 +56,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Component")
 	TSubclassOf<class UCollimationComponent> CollimationComponentClass;
 	
-	UPROPERTY(VisibleAnywhere, Category="Component")
-	class UPickableComponent* PickableComponent;
+	// UPROPERTY(VisibleAnywhere, Category="Component")
+	// class UPickableComponent* PickableComponent;
 
 	/*
 	 * 在瞄准时放大视野(FOV)

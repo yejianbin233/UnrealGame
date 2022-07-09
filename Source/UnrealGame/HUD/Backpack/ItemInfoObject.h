@@ -63,7 +63,7 @@ struct FItemInfo : public FTableRowBase
 
 	// 在场景中的 Item 对应的 Actor 类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="场景物品类")
-	TSubclassOf<class AItemBase> ItemBaseClass;
+	TSubclassOf<class AItemBase> ItemClass;
 };
 
 /*
