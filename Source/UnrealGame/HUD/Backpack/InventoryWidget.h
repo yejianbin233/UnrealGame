@@ -7,6 +7,7 @@
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Engine/DataTable.h"
+#include "ItemInfoObject.h"
 #include "InventoryWidget.generated.h"
 
 
@@ -29,7 +30,6 @@ UCLASS()
 class UNREALGAME_API UInventoryWidget : public UUserWidget
 {
 	GENERATED_BODY()
-
 
 public:
 

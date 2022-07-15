@@ -95,11 +95,11 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->Dropped();
+		// EquippedWeapon->Dropped();
 	}
 
 	EquippedWeapon = WeaponToEquip;
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+	// EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	const USkeletalMeshSocket* RightHandSocket = BlasterCharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 	if (RightHandSocket)
 	{
@@ -192,16 +192,16 @@ int32 UCombatComponent::AmountToReload()
 		return 0;
 	}
 
-	int32 RoomInMag = EquippedWeapon->GetMaxReloadAmmoAmount() - EquippedWeapon->GetAmmo();
-
-	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
-	{
-		int32 AmountCarried = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
-
-		int32 Least = FMath::Min(RoomInMag, AmountCarried);
-
-		return FMath::Clamp(RoomInMag, 0 , Least);
-	}
+	// int32 RoomInMag = EquippedWeapon->GetMaxReloadAmmoAmount() - EquippedWeapon->GetAmmo();
+	//
+	// if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	// {
+	// 	int32 AmountCarried = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	//
+	// 	int32 Least = FMath::Min(RoomInMag, AmountCarried);
+	//
+	// 	return FMath::Clamp(RoomInMag, 0 , Least);
+	// }
 	
 	return 0;
 }
@@ -210,7 +210,7 @@ void UCombatComponent::OnRep_EquippedWeapon()
 {
 	if (EquippedWeapon && BlasterCharacter)
 	{
-		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+		// EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 		const USkeletalMeshSocket* RightHandSocket = BlasterCharacter->GetMesh()->GetSocketByName(FName("RightHandSocket"));
 		if (RightHandSocket)
 		{
@@ -390,7 +390,7 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 
 	if (bIsAiming)
 	{
-		CurrentFOV = FMath::FInterpTo(CurrentFOV, EquippedWeapon->GetZoomedFOV(), DeltaTime, EquippedWeapon->GetZoomInterpSpeed());
+		// CurrentFOV = FMath::FInterpTo(CurrentFOV, EquippedWeapon->GetZoomedFOV(), DeltaTime, EquippedWeapon->GetZoomInterpSpeed());
 	}
 	
 	else
@@ -443,7 +443,9 @@ bool UCombatComponent::CanFire()
 		return false;
 	}
 
-	return !EquippedWeapon->IsEmpty() || !bCanFire;
+	// return !EquippedWeapon->IsEmpty() || !bCanFire;
+
+	return false;
 }
 
 void UCombatComponent::OnRep_CarriedAmmo()
@@ -467,7 +469,7 @@ void UCombatComponent::StartFireTimer()
 		return;
 	}
 
-	BlasterCharacter->GetWorldTimerManager().SetTimer(FireTimer, this, &UCombatComponent::FireTimerFinished, EquippedWeapon->FireDelay);
+	// BlasterCharacter->GetWorldTimerManager().SetTimer(FireTimer, this, &UCombatComponent::FireTimerFinished, EquippedWeapon->FireDelay);
 }
 
 void UCombatComponent::FireTimerFinished()
@@ -478,10 +480,10 @@ void UCombatComponent::FireTimerFinished()
 	}
 	
 	bCanFire = true;
-	if (bFireButtonPressed && EquippedWeapon->bAutomatic)
-	{
-		Fire();
-	}
+	// if (bFireButtonPressed && EquippedWeapon->bAutomatic)
+	// {
+	// 	Fire();
+	// }
 }
 
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
@@ -494,7 +496,7 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 	if (BlasterCharacter && bFireButtonPressed)
 	{
 		BlasterCharacter->PlayFireMontage(bIsAiming);
-		EquippedWeapon->Fire(TraceHitTarget);
+		// EquippedWeapon->Fire(TraceHitTarget);
 	}
 }
 

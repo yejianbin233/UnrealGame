@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon.h"
+#include "GunWeapon.h"
 #include "HitScanWeapon.generated.h"
 
 
@@ -19,7 +19,7 @@ class UParticleSystem;
  * 
  */
 UCLASS()
-class UNREALGAME_API AHitScanWeapon : public AWeapon
+class UNREALGAME_API AHitScanWeapon : public AGunWeapon
 {
 	GENERATED_BODY()
 

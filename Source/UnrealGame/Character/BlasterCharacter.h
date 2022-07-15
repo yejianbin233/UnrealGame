@@ -156,6 +156,7 @@ protected:
 
 
 public:
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
 	bool bHasPickableObject;
 	
 private:

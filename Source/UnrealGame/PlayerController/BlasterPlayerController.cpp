@@ -50,7 +50,7 @@ void ABlasterPlayerController::Tick(float DeltaTime)
 		{
 
 			// PlayerState->GetPing() * 4 > HighPingThreshold; // UE 将 Ping 除以 4，以将其压缩，因此为了得到正确的 Ping 需要乘以 4.
-			if (PlayerState->GetPing() * 4 > HighPingThreshold)
+			if (PlayerState->GetPingInMilliseconds() * 4 > HighPingThreshold)
 			{
 				// 高 Ping 处理
 			}; 

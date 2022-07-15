@@ -12,6 +12,9 @@ AItemBase::AItemBase()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
+	// 网络复制 Actor
+	bReplicates = true;
+
 	// 在构造函数中构造物品的基础框架
 	
 	PhysicMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PhysicMeshComponent"));
@@ -81,12 +84,15 @@ void AItemBase::BeginPlay()
 void AItemBase::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bIsInitialized)
+	if (HasAuthority())
 	{
-		ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
-		if (ensure(BlasterCharacter))
+		if (bIsInitialized)
 		{
-			BlasterCharacter->bHasPickableObject = true;
+			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
+			if (ensure(BlasterCharacter))
+			{
+				BlasterCharacter->bHasPickableObject = true;
+			}
 		}
 	}
 }
@@ -94,12 +100,15 @@ void AItemBase::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent
 void AItemBase::OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (bIsInitialized)
+	if (HasAuthority())
 	{
-		ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
-		if (ensure(BlasterCharacter))
+		if (bIsInitialized)
 		{
-			BlasterCharacter->bHasPickableObject = false;
+			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
+			if (ensure(BlasterCharacter))
+			{
+				BlasterCharacter->bHasPickableObject = false;
+			}
 		}
 	}
 }

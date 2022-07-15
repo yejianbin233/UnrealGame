@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UBackpackComponent::UBackpackComponent()
@@ -49,6 +50,13 @@ void UBackpackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void UBackpackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UBackpackComponent, Items);
 }
 
 bool UBackpackComponent::TryAddItem(FBackpackItemInfo& InItem)

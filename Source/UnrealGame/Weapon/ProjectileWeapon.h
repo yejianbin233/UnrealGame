@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GunWeapon.h"
 #include "UnrealGame/Weapon/Weapon.h"
 #include "ProjectileWeapon.generated.h"
 
@@ -10,7 +11,7 @@
  * 
  */
 UCLASS()
-class UNREALGAME_API AProjectileWeapon : public AWeapon
+class UNREALGAME_API AProjectileWeapon : public AGunWeapon
 {
 	GENERATED_BODY()
 

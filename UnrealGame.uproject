@@ -13,7 +13,8 @@
 				"UMG",
 				"CommonUI",
 				"AIModule",
-				"CoreUObject"
+				"CoreUObject",
+				"Paper2D"
 			]
 		}
 	],
@@ -68,6 +69,10 @@
 		},
 		{
 			"Name": "WaterExtras",
+			"Enabled": true
+		},
+		{
+			"Name": "Paper2D",
 			"Enabled": true
 		}
 	]

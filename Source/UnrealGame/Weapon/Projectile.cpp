@@ -12,27 +12,15 @@
 AProjectile::AProjectile()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	SetRootComponent(CollisionBox);
 
-	// 设置对象的碰撞对象通道，决定与其他碰撞的交互
-	CollisionBox->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	// 碰撞启用
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
-	// 统一设置为"Ignore"忽略碰撞响应，然后再针对某些通道进行响应。
-	CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-
-	// 响应通道
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
-	CollisionBox->SetCollisionResponseToChannel(ECC_SkeletalMesh, ECollisionResponse::ECR_Block);
-
-	
-	
+	ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
+	ProjectileMeshComponent->SetupAttachment(RootComponent);
+	ProjectileMeshComponent->AddWorldTransform(DeltaTransform);
 }
 
 // Called when the game starts or when spawned
@@ -65,13 +53,8 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 	
 	// 碰撞后销毁
 	Destroy();
-}
 
-// Called every frame
-void AProjectile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
+	// TODO 击中处理
 }
 
 void AProjectile::Destroyed()

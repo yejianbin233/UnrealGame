@@ -12,10 +12,10 @@ void AProjectileWeapon::Fire(const FVector& HitTarget)
 
 	APawn* InstigatorPawn = Cast<APawn>(GetOwner());
 
-	const USkeletalMeshSocket* MuzzleFlashSocket =  GetWeaponMesh()->GetSocketByName(FName("MuzzleFlash"));
+	const USkeletalMeshSocket* MuzzleFlashSocket =  GetWeaponMeshComponent()->GetSocketByName(FName("MuzzleFlash"));
 	if (MuzzleFlashSocket)
 	{
-		FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
+		FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMeshComponent());
 		
 		FVector ToTargetDirection = HitTarget - SocketTransform.GetLocation();
 		FRotator TargetRotation = ToTargetDirection.Rotation();

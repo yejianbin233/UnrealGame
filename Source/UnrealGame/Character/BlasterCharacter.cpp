@@ -515,20 +515,20 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
 	{
 		GetMesh()->SetVisibility(false);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		{
-			// 仅对拥有者不可见
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
-		}
+		// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		// {
+		// 	// 仅对拥有者不可见
+		// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+		// }
 	}
 	else
 	{
 		GetMesh()->SetVisibility(true);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		{
-			// 仅对拥有者不可见
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
+		// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		// {
+		// 	// 仅对拥有者不可见
+		// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+		// }
 	}
 }
 
@@ -1016,7 +1016,7 @@ void ABlasterCharacter::Elim()
 	if (Combat && Combat->EquippedWeapon)
 	{
 		// 如果死亡时装备武器，将丢弃武器
-		Combat->EquippedWeapon->Dropped();
+		// Combat->EquippedWeapon->Dropped();
 	}
 	
 	bElimmed = true;

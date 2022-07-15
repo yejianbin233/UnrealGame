@@ -11,6 +11,17 @@ UCLASS()
 class UNREALGAME_API ACasing : public AActor
 {
 	GENERATED_BODY()
+
+public:
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Component", DisplayName="子弹壳网格体")
+	UStaticMeshComponent* CasingMeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Casing", DisplayName="子弹壳冲击力")
+	float ShellEjectionImpulse;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Casing", DisplayName="子弹壳声音效果")
+	class USoundCue* ShellSound;
 	
 public:	
 	// Sets default values for this actor's properties
@@ -27,15 +38,4 @@ protected:
 			, const FHitResult& HitResult
 		);
 	
-private:	
-
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* CasingMesh;
-
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true))
-	float ShellEjectionImpulse;
-
-	UPROPERTY(EditAnywhere)
-	class USoundCue* ShellSound;
-
 };

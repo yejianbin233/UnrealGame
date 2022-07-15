@@ -12,19 +12,19 @@ ACasing::ACasing()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-	CasingMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CasingMesh"));
-	SetRootComponent(CasingMesh);
+	CasingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CasingMeshComponent"));
+	SetRootComponent(CasingMeshComponent);
 
-	CasingMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	CasingMeshComponent->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 
 	// 物理模拟
-	CasingMesh->SetSimulatePhysics(true);
+	CasingMeshComponent->SetSimulatePhysics(true);
 
 	// 添加重力
-	CasingMesh->SetEnableGravity(true);
+	CasingMeshComponent->SetEnableGravity(true);
 
 	// TODO 通知刚体碰撞
-	CasingMesh->SetNotifyRigidBodyCollision(true);
+	CasingMeshComponent->SetNotifyRigidBodyCollision(true);
 
 	ShellEjectionImpulse = 10.0f;
 }
@@ -35,8 +35,8 @@ void ACasing::BeginPlay()
 	Super::BeginPlay();
 
 	// 添加脉冲力
-	CasingMesh->AddImpulse(GetActorForwardVector() * ShellEjectionImpulse);
-	CasingMesh->OnComponentHit.AddDynamic(this, &ACasing::ACasing::OnHit);
+	CasingMeshComponent->AddImpulse(GetActorForwardVector() * ShellEjectionImpulse);
+	CasingMeshComponent->OnComponentHit.AddDynamic(this, &ACasing::ACasing::OnHit);
 }
 
 void ACasing::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent,

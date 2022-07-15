@@ -51,7 +51,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Backpack Setting", DisplayName="背包单元格大小")
 	float CellSize;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Backpack Setting", DisplayName="背包物品")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Backpack Setting", DisplayName="背包物品")
 	TArray<FBackpackItemInfo> Items;
 
 	// 背包数据改变时事件，通知 UI 更新
@@ -64,9 +64,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	/*
-	 * 
-	 */
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	/*
 	 * @description:TryAddItem - 尝试添加物品，拾取物品时调用的背包添加物品方法
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构
