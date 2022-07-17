@@ -14,7 +14,9 @@
 				"CommonUI",
 				"AIModule",
 				"CoreUObject",
-				"Paper2D"
+				"Paper2D",
+				"MassSpawner",
+				"MassEntity"
 			]
 		}
 	],
@@ -73,6 +75,34 @@
 		},
 		{
 			"Name": "Paper2D",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayBehaviors",
+			"Enabled": true
+		},
+		{
+			"Name": "SmartObjects",
+			"Enabled": true
+		},
+		{
+			"Name": "StateTree",
+			"Enabled": true
+		},
+		{
+			"Name": "MassAI",
+			"Enabled": true
+		},
+		{
+			"Name": "MassCrowd",
+			"Enabled": true
+		},
+		{
+			"Name": "MassEntity",
+			"Enabled": true
+		},
+		{
+			"Name": "MassGameplay",
 			"Enabled": true
 		}
 	]

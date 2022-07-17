@@ -40,7 +40,7 @@ public:
 	/*
 	 * NOTE：可以在 蓝图中使用 "TimeLineComponent(时间轴组件)"来实现，而不需要定义"BlockBlendTime"，定义"BlockBlendTime"只不过是使用多种方式处理而已
 	 */
-	UPROPERTY(Category="Camera", DisplayName="阻塞混合摄像机的时间")
+	UPROPERTY(VisibleAnywhere, Category="Camera", DisplayName="阻塞混合摄像机的时间")
 	float BlockBlendTime;
 
 	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="阻塞X轴位置数组")
