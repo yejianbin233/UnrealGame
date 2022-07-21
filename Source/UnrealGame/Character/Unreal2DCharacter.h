@@ -121,28 +121,28 @@ public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite, Category="Flipbook", DisplayName="攻击动画")
 	TObjectPtr<UPaperFlipbook> FB_Attack;
 	
-	UPROPERTY(EditDefaultsOnly, Replicated, BlueprintReadWrite, Category="FlipBook", DisplayName="持久动画帧动画状态")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="FlipBook", DisplayName="持久动画帧动画状态")
 	EFlipBookState FlipBookState=EFlipBookState::Transitioning;
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category="FlipBook", DisplayName="临时动画帧动画状态")
 	EFlipBookTemporaryAnimation FlipBookTemporaryAnimationState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement Direction", DisplayName="向前移动方向")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Direction", DisplayName="向前移动方向")
 	FVector MoveForwarDirection;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement Direction", DisplayName="向上移动方向")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Direction", DisplayName="向上移动方向")
 	FVector MoveUpDirection;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category="Movement", DisplayName="上一个移动位置")
 	FVector PreCharacterLocation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement", DisplayName="跳跃过渡到下落的时间间隔")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Movement", DisplayName="跳跃过渡到下落的时间间隔")
 	float JumpToFallinginterval = 1.0f;
 
-	UPROPERTY(BlueprintReadWrite, Category="Movement", DisplayName="下落时间")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Movement", DisplayName="下落时间")
 	float FallingTime = 0;
 
-	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="摄像机Actor")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Camera", DisplayName="摄像机Actor")
 	class AUnreal2DCameraActor* CameraActor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Climb", DisplayName="攀爬组件")
@@ -157,12 +157,17 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(BlueprintCallable, Category="Camera", DisplayName="设置玩家角色摄像机")
+	UFUNCTION(Server, Unreliable, BlueprintCallable, Category="Camera", DisplayName="设置玩家角色摄像机")
 	virtual void SetCameraActor(AUnreal2DCameraActor* InCameraActor);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="FlipBook", DisplayName="设置玩家角色动画状态")
+	UFUNCTION(Server, Unreliable, BlueprintCallable, Category="FlipBook", DisplayName="设置玩家角色动画状态")
 	void SetFlipBookState(EFlipBookState InFlipBookState);
 
+	UFUNCTION(Server, Unreliable, BlueprintCallable, Category="FlipBook", DisplayName="设置玩家角色动画状态")
+	void SC_SetSpriteRotation(FRotator SpriteRotator);
+	
+	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category="FlipBook", DisplayName="设置玩家角色动画状态")
+	void SetSpriteRotation(FRotator SpriteRotator);
 
 protected:
 	/*

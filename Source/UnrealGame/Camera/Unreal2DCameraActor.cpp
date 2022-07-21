@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/Unreal2DCharacter.h"
 
 // Sets default values
@@ -36,7 +37,19 @@ void AUnreal2DCameraActor::Tick(float DeltaTime)
 	UpdateCameraFollowPlayer(DeltaTime);
 }
 
-void AUnreal2DCameraActor::SetCameraOwner(AUnreal2DCharacter* InPlayerCharacter)
+void AUnreal2DCameraActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AUnreal2DCameraActor, PlayerCharacter);
+	DOREPLIFETIME(AUnreal2DCameraActor, bIsBlocking);
+	DOREPLIFETIME(AUnreal2DCameraActor, OverlapNum);
+	DOREPLIFETIME(AUnreal2DCameraActor, CameraBlockXLocation);
+	DOREPLIFETIME(AUnreal2DCameraActor, BlockBlendTime);
+	DOREPLIFETIME(AUnreal2DCameraActor, CameraBlockXValues);
+}
+
+void AUnreal2DCameraActor::SetCameraOwner_Implementation(AUnreal2DCharacter* InPlayerCharacter)
 {
 	PlayerCharacter = InPlayerCharacter;
 }

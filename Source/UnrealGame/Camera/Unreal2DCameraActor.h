@@ -22,16 +22,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera", DisplayName="摄像机组件")
 	class UCameraComponent* CameraComponent;
 
-	UPROPERTY(BlueprintReadWrite, Category="Reference", DisplayName="玩家角色")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Reference", DisplayName="玩家角色")
 	class AUnreal2DCharacter* PlayerCharacter;
 
-	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="摄像机是否处于阻塞中状态")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Camera", DisplayName="摄像机是否处于阻塞中状态")
 	bool bIsBlocking;
 
-	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="摄像机阻塞次数")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Camera", DisplayName="摄像机阻塞次数")
 	float OverlapNum;
 
-	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="摄像机阻塞X轴位置")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Camera", DisplayName="摄像机阻塞X轴位置")
 	float CameraBlockXLocation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera", DisplayName="摄像机混合曲线")
@@ -40,10 +40,10 @@ public:
 	/*
 	 * NOTE：可以在 蓝图中使用 "TimeLineComponent(时间轴组件)"来实现，而不需要定义"BlockBlendTime"，定义"BlockBlendTime"只不过是使用多种方式处理而已
 	 */
-	UPROPERTY(VisibleAnywhere, Category="Camera", DisplayName="阻塞混合摄像机的时间")
+	UPROPERTY(VisibleAnywhere,Replicated, Category="Camera", DisplayName="阻塞混合摄像机的时间")
 	float BlockBlendTime;
 
-	UPROPERTY(BlueprintReadWrite, Category="Camera", DisplayName="阻塞X轴位置数组")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Camera", DisplayName="阻塞X轴位置数组")
 	TArray<float> CameraBlockXValues;
 	
 public:	
@@ -58,6 +58,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	/*
 	 * @description: SetCameraOwner - 设置摄像机的玩家角色拥有者
 	 * @param InPlayerCharacter - 玩家角色
@@ -66,7 +67,7 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月15日 星期五 18:07:11
 	 */
-	UFUNCTION(BlueprintCallable, Category="Camera", DisplayName="设置摄像机的玩家角色拥有者")
+	UFUNCTION(Server, Unreliable, BlueprintCallable, Category="Camera", DisplayName="设置摄像机的玩家角色拥有者")
 	void SetCameraOwner(AUnreal2DCharacter* InPlayerCharacter);
 
 	/*

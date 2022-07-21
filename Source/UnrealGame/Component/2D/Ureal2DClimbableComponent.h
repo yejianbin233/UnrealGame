@@ -96,7 +96,7 @@ private:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Climb", DisplayName="第二个方向的原占比", meta=(AllowPrivateAccess))
 	float SecondDirectionRatio = 1;
 
-	UPROPERTY()
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Climb", DisplayName="玩家角色上一次更新位置", meta=(AllowPrivateAccess))
 	// 缓存玩家角色上一次更新位置
 	FVector LastUpdatePlayerActorLocation;
 
@@ -119,22 +119,22 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION(Category="Climb", DisplayName="进入攀爬模式，暂定攀爬模式为 EMovementMode::MOVE_None")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="进入攀爬模式，暂定攀爬模式为 EMovementMode::MOVE_None")
 	void EnterClimbMode();
 
-	UFUNCTION(Category="Climb", DisplayName="结束攀爬模式，正常模式为 EMovementMode::MOVE_Walk")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="结束攀爬模式，正常模式为 EMovementMode::MOVE_Walk")
 	void EndClimbMode();
 
-	UFUNCTION(Category="Climb", DisplayName="进入攀爬状态")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="进入攀爬状态")
 	void EnterClimbState();
 
-	UFUNCTION(Category="Climb", DisplayName="结束攀爬状态")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="结束攀爬状态")
 	void EndClimbState();
 
-	UFUNCTION(Category="Climb", DisplayName="进入或离开可攀爬区域")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="进入或离开可攀爬区域")
 	void EnterOrLeaveClimbableArea(AClimbableSpriteActor* ClimbableSpriteActor, bool IsEnter);
 
-	UFUNCTION(Category="Climb", DisplayName="设置可攀爬")
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="设置可攀爬")
 	void ClimbableHandle(bool ToUp);
 
 	/*
@@ -165,11 +165,14 @@ public:
 	void ClimbDownMovement(const FInputActionValue& ActionValue);
 	
 	void ClimbToJump();
-	void ApplyClibToJump(FVector ImpulseForce);
+	
 	void ReleaseLeft();
 	void ReleaseRight();
 	void ReleaseUp();
 	void ReleaseDown();
+
+	UFUNCTION(Server, Unreliable, Category="Climb", DisplayName="设置可攀爬")
+	void ApplyClibToJump(FVector ImpulseForce);
 	
 protected:
 	// Called when the game starts

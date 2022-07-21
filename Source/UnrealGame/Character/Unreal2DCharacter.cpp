@@ -21,7 +21,10 @@ AUnreal2DCharacter::AUnreal2DCharacter(const FObjectInitializer& ObjectInitializ
 
 	//CameraComponent->SetupAttachment(SpringArmComponent, USpringArmComponent::SocketName);
 	ClimbableComponent = CreateDefaultSubobject<UUreal2DClimbableComponent>(TEXT("ClimbableComponent"));
+	
 	ClimbableComponent->SetIsReplicated(true);
+
+	GetSprite()->SetIsReplicated(true);
 }
 
 void AUnreal2DCharacter::Tick(float DeltaSeconds)
@@ -119,9 +122,13 @@ void AUnreal2DCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUnreal2DCharacter, FlipBookState);
 	DOREPLIFETIME(AUnreal2DCharacter, FlipBookTemporaryAnimationState);
+	DOREPLIFETIME(AUnreal2DCharacter, PreCharacterLocation);
+	DOREPLIFETIME(AUnreal2DCharacter, JumpToFallinginterval);
+	DOREPLIFETIME(AUnreal2DCharacter, FallingTime);
+	DOREPLIFETIME(AUnreal2DCharacter, CameraActor);
 }
 
-void AUnreal2DCharacter::SetCameraActor(AUnreal2DCameraActor* InCameraActor)
+void AUnreal2DCharacter::SetCameraActor_Implementation(AUnreal2DCameraActor* InCameraActor)
 {
 	CameraActor = InCameraActor;
 
@@ -139,6 +146,16 @@ void AUnreal2DCharacter::BeginDestroy()
 	Super::BeginDestroy();
 }
 
+
+void AUnreal2DCharacter::SC_SetSpriteRotation_Implementation(FRotator SpriteRotator)
+{
+	SetSpriteRotation(SpriteRotator);
+}
+
+void AUnreal2DCharacter::SetSpriteRotation_Implementation(FRotator SpriteRotator)
+{
+	GetSprite()->SetWorldRotation(SpriteRotator);
+}
 
 void AUnreal2DCharacter::GroundMovement(const FInputActionValue& ActionValue)
 {
@@ -164,7 +181,7 @@ void AUnreal2DCharacter::GroundMovement(const FInputActionValue& ActionValue)
 		if (!bIsSameDirection)
 		{
 			float Yaw = SpriteYaw == 180 ? 0 : 180;
-			SpriteSceneComponent->SetWorldRotation(FRotator(0, Yaw, 0));
+			SC_SetSpriteRotation(FRotator(0, Yaw, 0));
 		}
 	}
 	

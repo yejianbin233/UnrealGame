@@ -30,10 +30,14 @@ void UUreal2DClimbableComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	DOREPLIFETIME(UUreal2DClimbableComponent, bIsCanClimb);
 	DOREPLIFETIME(UUreal2DClimbableComponent, CurrentClimbableActor);
 	DOREPLIFETIME(UUreal2DClimbableComponent, ClimbRate);
-
+	DOREPLIFETIME(UUreal2DClimbableComponent, ClimbSpeed);
+	DOREPLIFETIME(UUreal2DClimbableComponent, XImpulseForceValue);
+	DOREPLIFETIME(UUreal2DClimbableComponent, ZImpulseForceValue);
+	DOREPLIFETIME(UUreal2DClimbableComponent, SecondDirectionRatio);
+	DOREPLIFETIME(UUreal2DClimbableComponent, LastUpdatePlayerActorLocation);
 }
 
-void UUreal2DClimbableComponent::EnterClimbState()
+void UUreal2DClimbableComponent::EnterClimbState_Implementation()
 {
 	// 1. 设置攀爬移动模式，手动设置攀爬的位置
 	GetOwnerPlayerCharacter()->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
@@ -74,7 +78,7 @@ void UUreal2DClimbableComponent::EnterClimbState()
 	GetOwnerPlayerCharacter()->SetActorLocation(ClimbLocation);
 }
 
-void UUreal2DClimbableComponent::EndClimbState()
+void UUreal2DClimbableComponent::EndClimbState_Implementation()
 {
 	// 1. 退出攀爬移动模式，恢复正常的移动模式
 	EndClimbMode();
@@ -94,7 +98,7 @@ void UUreal2DClimbableComponent::EndClimbState()
 	}
 }
 
-void UUreal2DClimbableComponent::EnterOrLeaveClimbableArea(AClimbableSpriteActor* ClimbableSpriteActor, bool IsEnter)
+void UUreal2DClimbableComponent::EnterOrLeaveClimbableArea_Implementation(AClimbableSpriteActor* ClimbableSpriteActor, bool IsEnter)
 {
 	if (IsEnter)
 	{
@@ -107,27 +111,6 @@ void UUreal2DClimbableComponent::EnterOrLeaveClimbableArea(AClimbableSpriteActor
 		CurrentClimbableActor = nullptr;
 	}
 }
-
-// void UUreal2DClimbableComponent::ClimbToDownFall()
-// {
-// 	// 仅结束攀爬的移动模式，仍保留攀爬状态，用于播放攀爬滑动，当滑动离开可攀爬区域时自动切换到过渡状态
-// 	EndClimbState();
-// }
-
-// void UUreal2DClimbableComponent::LeftUpComb()
-// {
-//
-// 	UE_LOG(LogTemp, Warning, TEXT("1"));
-// 	LeftRelease = false;
-// 	UpRelease = false;
-// }
-//
-// void UUreal2DClimbableComponent::RightUpComb()
-// {
-// 	UE_LOG(LogTemp, Warning, TEXT("2"));
-// 	RightRelease = false;
-// 	UpRelease = false;
-// }
 
 void UUreal2DClimbableComponent::ReleaseLeft()
 {
@@ -223,41 +206,6 @@ void UUreal2DClimbableComponent::InitPlayerInputComponent()
 			{
 				EInputComponent->BindAction(EIA_ClimbToJump, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToJump);
 			}
-		
-			// if (EIA_LeftJump)
-			// {
-			// 	EInputComponent->BindAction(EIA_LeftJump, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToLeftJump);
-			// }
-			//
-			// if (EIA_LeftTopComb)
-			// {
-			// 	EInputComponent->BindAction(EIA_LeftTopComb, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::LeftUpComb);
-			// }
-			//
-			// if (EIA_LeftTopJump)
-			// {
-			// 	EInputComponent->BindAction(EIA_LeftTopJump, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToLeftTopJump);
-			// }
-			//
-			// if (EIA_RightJump)
-			// {
-			// 	EInputComponent->BindAction(EIA_RightJump, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToRightJump);
-			// }
-			//
-			// if (EIA_RightTopComb)
-			// {
-			// 	EInputComponent->BindAction(EIA_RightTopComb, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::RightUpComb);
-			// }
-			//
-			// if (EIA_RightTopJump)
-			// {
-			// 	EInputComponent->BindAction(EIA_RightTopJump, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToRightTopJump);
-			// }
-			//
-			// if (EIA_DownFall)
-			// {
-			// 	EInputComponent->BindAction(EIA_DownFall, ETriggerEvent::Triggered, this, &UUreal2DClimbableComponent::ClimbToDownFall);
-			// }
 
 			if (EIA_ReleaseLeft)
 			{
@@ -282,7 +230,7 @@ void UUreal2DClimbableComponent::InitPlayerInputComponent()
 	}
 }
 
-void UUreal2DClimbableComponent::EnterClimbMode()
+void UUreal2DClimbableComponent::EnterClimbMode_Implementation()
 {
 	if (GetOwnerPlayerCharacter()->HasAuthority())
 	{
@@ -292,7 +240,7 @@ void UUreal2DClimbableComponent::EnterClimbMode()
 	}
 }
 
-void UUreal2DClimbableComponent::EndClimbMode()
+void UUreal2DClimbableComponent::EndClimbMode_Implementation()
 {
 	if (GetOwnerPlayerCharacter()->HasAuthority())
 	{
@@ -304,7 +252,7 @@ void UUreal2DClimbableComponent::EndClimbMode()
 	}
 }
 
-void UUreal2DClimbableComponent::ClimbableHandle(bool ToUp)
+void UUreal2DClimbableComponent::ClimbableHandle_Implementation(bool ToUp)
 {
 	if (GetOwnerPlayerCharacter()->HasAuthority())
 	{
@@ -435,59 +383,6 @@ void UUreal2DClimbableComponent::ClimbDownMovement(const FInputActionValue& Acti
 		ClimbableHandle(false);
 	}
 }
-//
-// void UUreal2DClimbableComponent::ClimbToLeftTopJump()
-// {
-// 	if (!LeftRelease && !UpRelease)
-// 	{
-// 		FVector ImpulseForce;
-// 		ImpulseForce.X = XImpulseForceValue * -1;
-// 		ImpulseForce.Y = 0;
-// 		ImpulseForce.Z = ZImpulseForceValue;
-// 	
-// 		ClibToJump(ImpulseForce);
-// 	}
-// 	
-// }
-//
-// void UUreal2DClimbableComponent::ClimbToLeftJump()
-// {
-// 	if (!LeftRelease && UpRelease)
-// 	{
-// 		FVector ImpulseForce;
-// 		ImpulseForce.X = XImpulseForceValue * -1;
-// 		ImpulseForce.Y = 0;
-// 		ImpulseForce.Z = ZImpulseForceValue * SecondDirectionRatio;
-// 	
-// 		ClibToJump(ImpulseForce);
-// 	}
-// }
-//
-// void UUreal2DClimbableComponent::ClimbToRightTopJump()
-// {
-// 	if (!RightRelease && !UpRelease)
-// 	{
-// 		FVector ImpulseForce;
-// 		ImpulseForce.X = XImpulseForceValue;
-// 		ImpulseForce.Y = 0;
-// 		ImpulseForce.Z = ZImpulseForceValue;
-// 		
-// 		ClibToJump(ImpulseForce);
-// 	}
-// }
-//
-// void UUreal2DClimbableComponent::ClimbToRightJump()
-// {
-// 	if (!RightRelease && UpRelease)
-// 	{
-// 		FVector ImpulseForce;
-// 		ImpulseForce.X = XImpulseForceValue;
-// 		ImpulseForce.Y = 0;
-// 		ImpulseForce.Z = ZImpulseForceValue * SecondDirectionRatio;
-//
-// 		ClibToJump(ImpulseForce);
-// 	}
-// }
 
 void UUreal2DClimbableComponent::ClimbToJump()
 {
@@ -542,7 +437,7 @@ void UUreal2DClimbableComponent::ClimbToJump()
 	
 }
 
-void UUreal2DClimbableComponent::ApplyClibToJump(FVector ImpulseForce)
+void UUreal2DClimbableComponent::ApplyClibToJump_Implementation(FVector ImpulseForce)
 {
 	EndClimbState();
 
