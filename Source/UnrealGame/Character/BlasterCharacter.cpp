@@ -25,6 +25,7 @@
 #include "UnrealGame/HUD/Backpack/BackpackComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackWidget.h"
 #include "UnrealGame/HUD/Backpack/ItemBase.h"
+#include "UnrealGame/InteractiveActor/InteractiveDoor.h"
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -92,6 +93,47 @@ void ABlasterCharacter::PostInitializeComponents()
 	{
 		Combat->BlasterCharacter = this;
 	}
+}
+
+void ABlasterCharacter::Interactive()
+{
+	
+
+	// 1. 先进行射线检测
+	FVector CameraLocation = FollowCamera->GetComponentLocation();
+	FVector CameraForwardDirectional = FollowCamera->GetForwardVector();
+	FVector CameraTraceEndLocation = CameraLocation + (CameraForwardDirectional * InteractiveTraceDistance);
+	FHitResult InteractiveTraceResult;
+	FCollisionQueryParams CollisionQueryParams;
+	CollisionQueryParams.bDebugQuery = true;
+	// FCollisionResponseParams CollisionResponseParams;
+
+	UKismetSystemLibrary::LineTraceSingle(GetWorld()
+		, CameraLocation
+		, CameraTraceEndLocation
+		, InteractiveTraceType
+		, false
+		, TArray<AActor*>()
+		, EDrawDebugTrace::Persistent
+		, InteractiveTraceResult
+		, true
+		, FLinearColor::Green
+		, FLinearColor::Red
+		, 5.f);
+
+	if (InteractiveTraceResult.bBlockingHit)
+	{
+		// bool bIsImplemented = InteractiveTraceResult.GetActor()->GetClass()->ImplementsInterface(UInteractiveInterface::StaticClass());
+		bool bIsImplemented = InteractiveTraceResult.GetActor()->Implements<UInteractiveInterface>();
+
+		if (bIsImplemented)
+		{
+			IInteractiveInterface* InteractiveActor = Cast<IInteractiveInterface>(InteractiveTraceResult.GetActor());
+			InteractiveActor->Interactive();
+		}
+	}
+
+	// 2. 再进行重叠检测
 }
 
 // Called when the game starts or when spawned
@@ -959,6 +1001,11 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		if (EIA_RotateDragItemWidget)
 		{
 			EInputComponent->BindAction(EIA_RotateDragItemWidget, ETriggerEvent::Triggered, this, &ThisClass::RotateDragItemWidget);
+		}
+
+		if (EIA_Interactive)
+		{
+			EInputComponent->BindAction(EIA_Interactive, ETriggerEvent::Triggered, this, &ThisClass::Interactive);
 		}
 	}
 	

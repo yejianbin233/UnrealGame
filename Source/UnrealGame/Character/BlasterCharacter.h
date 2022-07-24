@@ -90,6 +90,9 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
 	FItemInfo GetItemInfoFromTable(FName Id);
+
+	UFUNCTION(BlueprintCallable, Category="Interactive", DisplayName="交互")
+	void Interactive();
 	
 protected:
 	// Called when the game starts or when spawned
@@ -256,56 +259,59 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputMappingContext")
 	TObjectPtr<class UInputMappingContext> ShootGameInputMappingContext;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="射击")
 	TObjectPtr<class UInputAction> EIA_Shoot;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="瞄准")
 	TObjectPtr<UInputAction> EIA_Aim;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="蹲伏")
 	TObjectPtr<UInputAction> EIA_Crouch;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="丢弃")
 	TObjectPtr<UInputAction> EIA_Discard;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="拾取")
 	TObjectPtr<UInputAction> EIA_Pickup;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="装备")
 	TObjectPtr<UInputAction> EIA_Equipment;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="跳跃")
 	TObjectPtr<UInputAction> EIA_Jump;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="向前移动")
 	TObjectPtr<UInputAction> EIA_MoveForward;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="向右移动")
 	TObjectPtr<UInputAction> EIA_MoveRight;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="装填弹药")
 	TObjectPtr<UInputAction> EIA_ReloadAmmo;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="冲刺")
 	TObjectPtr<UInputAction> EIA_Sprint;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="不冲刺")
 	TObjectPtr<UInputAction> EIA_UnSprint;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="切换")
 	TObjectPtr<UInputAction> EIA_UseSwitch;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="转身")
 	TObjectPtr<UInputAction> EIA_Turn;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="俯仰视")
 	TObjectPtr<UInputAction> EIA_Lookup;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="打开或关闭背包")
 	TObjectPtr<UInputAction> EIA_OpenOrCloseBackpack;
 
-	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction")
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="旋转背包物品")
 	TObjectPtr<UInputAction> EIA_RotateDragItemWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="交互")
+	TObjectPtr<UInputAction> EIA_Interactive;
 	/* Enhanced Input  */
 
 
@@ -384,6 +390,12 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess))
 	AActor* CurrentPickableActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的距离")
+	float InteractiveTraceDistance=100;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的检测对象")
+	TEnumAsByte<ETraceTypeQuery> InteractiveTraceType;
 	
 private:
 	/*
