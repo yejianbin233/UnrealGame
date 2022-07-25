@@ -8,7 +8,8 @@ public class UnrealGame : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "GameplayTasks", "Paper2D" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "GameplayTasks", "Paper2D"
+			, "ChaosVehicles", "ChaosVehiclesCore","ChaosVehiclesEngine","ChaosVehiclesEditor" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput" });
 

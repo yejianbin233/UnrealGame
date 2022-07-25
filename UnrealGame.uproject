@@ -16,7 +16,8 @@
 				"CoreUObject",
 				"Paper2D",
 				"MassSpawner",
-				"MassEntity"
+				"MassEntity",
+				"ChaosVehicles"
 			]
 		}
 	],
