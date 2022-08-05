@@ -22,6 +22,13 @@ ABlasterGameMode::ABlasterGameMode()
 	bDelayedStart = false;
 }
 
+void ABlasterGameMode::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	LoadPrimaryDataAsset();
+}
+
 void ABlasterGameMode::BeginPlay()
 {
 	Super::BeginPlay();
@@ -34,15 +41,15 @@ void ABlasterGameMode::OnMatchStateSet()
 	Super::OnMatchStateSet();
 
 	// FConstPlayerControllerIterator - 玩家控制器迭代器
-	for(FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		ABlasterPlayerController* BlasterPlayerController = Cast<ABlasterPlayerController>(*It);
-
-		if (BlasterPlayerController)
-		{
-			BlasterPlayerController->OnMatchStateSet(MatchState);
-		}
-	}
+	// for(FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	// {
+	// 	ABlasterPlayerController* BlasterPlayerController = Cast<ABlasterPlayerController>(*It);
+	//
+	// 	if (BlasterPlayerController)
+	// 	{
+	// 		BlasterPlayerController->OnMatchStateSet(MatchState);
+	// 	}
+	// }
 	
 }
 
@@ -50,34 +57,34 @@ void ABlasterGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (MatchState == MatchState::WaitingToStart)
-	{
-		CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-
-		if (CountdownTime <= 0.0f)
-		{
-			// 开始比赛
-			StartMatch();
-		}
-	}
-	else if(MatchState == MatchState::InProgress)
-	{
-		CountdownTime = WarmupTime + MatchTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			SetMatchState(MatchState::Cooldown);
-		}
-	}
-	else if(MatchState == MatchState::Cooldown)
-	{
-		CountdownTime = CountdownTime + WarmupTime + MatchTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-
-		if (CountdownTime <= 0.0f)
-		{
-			// 重启游戏
-			RestartGame();
-		}
-	}
+	// if (MatchState == MatchState::WaitingToStart)
+	// {
+	// 	CountdownTime = WarmupTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	//
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		// 开始比赛
+	// 		StartMatch();
+	// 	}
+	// }
+	// else if(MatchState == MatchState::InProgress)
+	// {
+	// 	CountdownTime = WarmupTime + MatchTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		SetMatchState(MatchState::Cooldown);
+	// 	}
+	// }
+	// else if(MatchState == MatchState::Cooldown)
+	// {
+	// 	CountdownTime = CountdownTime + WarmupTime + MatchTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	//
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		// 重启游戏
+	// 		RestartGame();
+	// 	}
+	// }
 }
 
 void ABlasterGameMode::PlayerEliminated(ABlasterCharacter* ElimmedCharacter, ABlasterPlayerController* VictimController,

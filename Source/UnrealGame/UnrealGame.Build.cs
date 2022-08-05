@@ -9,7 +9,8 @@ public class UnrealGame : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule", "GameplayTasks", "Paper2D"
-			, "ChaosVehicles", "ChaosVehiclesCore","ChaosVehiclesEngine","ChaosVehiclesEditor" });
+			, "ChaosVehicles", "ChaosVehiclesCore","ChaosVehiclesEngine","ChaosVehiclesEditor"
+			, "DataRegistry"});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput" });
 

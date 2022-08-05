@@ -1,12 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UnrealGame/Weapon/Projectile.h"
+#include "Projectile.h"
 
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
-#include "UnrealGame/UnrealGame.h"
 
 // Sets default values
 AProjectile::AProjectile()

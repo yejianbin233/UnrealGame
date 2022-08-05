@@ -9,7 +9,6 @@
 #include "UnrealGame/PlayerState/BlasterPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "UnrealGame/BlasterComponent/CombatComponent.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/GameMode/BlasterGameMode.h"
 #include "UnrealGame/HUD/Announcement.h"
@@ -413,37 +412,37 @@ void ABlasterPlayerController::HandleMatchHasStarted()
 
 void ABlasterPlayerController::HandleCooldown()
 {
-	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
-
-	if (BlasterHUD)
-	{
-		BlasterHUD->CharacterOverlay->RemoveFromParent();
-
-		bool bHUDValid = BlasterHUD->Announcement
-			&& BlasterHUD->Announcement->AnnouncementText
-			&& BlasterHUD->Announcement->InfoText;
-
-		if (bHUDValid)
-		{
-			// 隐藏 HUD
-			BlasterHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
-
-			FString AnnouncementText("New Match Start In:");
-			BlasterHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
-
-			BlasterHUD->Announcement->InfoText->SetText(FText());
-		}
-	}
-
-	ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn());
-
-	if (BlasterCharacter && BlasterCharacter->GetCombat())
-	{
-		// BlasterCharacter->bDisableGameplay = true;
-
-		BlasterCharacter->GetCombat()->FireButtonPressed(false);
-		
-	}
+	// BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
+	//
+	// if (BlasterHUD)
+	// {
+	// 	BlasterHUD->CharacterOverlay->RemoveFromParent();
+	//
+	// 	bool bHUDValid = BlasterHUD->Announcement
+	// 		&& BlasterHUD->Announcement->AnnouncementText
+	// 		&& BlasterHUD->Announcement->InfoText;
+	//
+	// 	if (bHUDValid)
+	// 	{
+	// 		// 隐藏 HUD
+	// 		BlasterHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
+	//
+	// 		FString AnnouncementText("New Match Start In:");
+	// 		BlasterHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
+	//
+	// 		BlasterHUD->Announcement->InfoText->SetText(FText());
+	// 	}
+	// }
+	//
+	// ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn());
+	//
+	// if (BlasterCharacter && BlasterCharacter->GetCombatComponent())
+	// {
+	// 	// BlasterCharacter->bDisableGameplay = true;
+	//
+	// 	// BlasterCharacter->GetCombat()->FireButtonPressed(false);
+	// 	
+	// }
 }
 
 void ABlasterPlayerController::ServerCheckMatchState_Implementation()

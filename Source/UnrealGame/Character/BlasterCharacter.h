@@ -11,11 +11,15 @@
 #include "UnrealGame/Enums/WeaponTypes.h"
 #include "UnrealGame/HUD/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Interfaces/InteractWithCrosshairsInterface.h"
+#include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "BlasterCharacter.generated.h"
 
 
 struct FInputActionValue;
 
+/*
+ * FVelocityBlend 根据速度来判断方向混合量
+ */
 USTRUCT(BlueprintType)
 struct FVelocityBlend
 {
@@ -43,217 +47,6 @@ class UNREALGAME_API ABlasterCharacter : public ACharacter, public IInteractWith
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
-	ABlasterCharacter();
-
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	virtual void PostInitializeComponents() override;
-
-	/* 动画蒙太奇 */
-	// 播放开火动画蒙太奇
-	void PlayFireMontage(bool bIsAiming);
-
-	// 播放受击动画蒙太奇
-	void PlayHitReactMontage();
-
-	// 播放重装弹蒙太奇
-	void PlayReloadMontage();
-
-	// 播放死亡动画蒙太奇
-	UFUNCTION(NetMulticast, Reliable)
-	void PlayElimMontage();
-	/* 动画蒙太奇 */
-
-	// 死亡处理
-	void Elim();
-
-
-	/*
-	 * @description:GetItemInfoFromTable - 从物品数据表获取物品数据
-	 * @param Id - 物品的唯一Id
-	 *	
-	 * @return FItemInfo - 物品数据结构
-	 * ...
-	 *
-	 *	note：TODO 临时放置，便于获取数据表
-	 * 
-	 * @author: yejianbin
-	 * @version: v1.0
-	 * @createTime: 2022年07月08日 星期五 19:07:52
-	 */
-	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
-	FItemInfo GetItemInfoFromTable(FName Id);
-
-	UFUNCTION(BlueprintCallable, Category="Interactive", DisplayName="交互")
-	void Interactive();
-	
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	/*
-	 * 玩家输入处理函数
-	 */
-	void MoveForward(const FInputActionValue& ActionValue);
-
-	void MoveRight(const FInputActionValue& ActionValue);
-
-	void Turn(const FInputActionValue& ActionValue);
-
-	void LookUp(const FInputActionValue& ActionValue);
-
-	void JumpButtonPressed();
-	
-	void EquipButtonPressed();
-
-	void CrouchButtonPressed();
-	
-	void SprintButtonPressed();
-	
-	void SprintButtonReleased();
-
-	void AimButtonPressed();
-	
-	void AimButtonReleased();
-
-	void FireButtonPressed();
-	
-	void FireButtonReleased();
-
-	void ReloadButtonPressed();
-
-	void OpenOrCloseBackpack();
-
-	/*
-	 * @description: RotateDragItemWidget - 用于处理用户输入，旋转正在拖动的物品控件
-	 * @author: yejianbin
-	 * @version: v1.0
-	 * @createTime: 2022年07月08日 星期五 19:07:10
-	 */
-	void RotateDragItemWidget();
-	
-	void Pickup();
-	
-	/* 玩家输入处理函数 */
-
-	// 收到伤害处理方法
-	UFUNCTION()
-	void ReceiveDamage(AActor* DamagedActor
-		, float Damage
-		, const UDamageType* DamageType
-		, AController* InstigatorController
-		, AActor* DamagerCauser);
-
-	// 更新 Hud
-	void UpdateHUDHealth();
-
-	// 玩家 Playerstate
-	void PollInit();
-
-
-public:
-	UPROPERTY(BlueprintReadOnly, Replicated, Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
-	bool bHasPickableObject;
-	
-private:
-
-	/*
-	 * 组件
-	 */
-
-	// 弹簧臂组件
-	UPROPERTY(VisibleAnywhere, Category = "Camera")
-	class USpringArmComponent* CameraBoom;
-
-	// 摄像机组件
-	UPROPERTY(VisibleAnywhere, Category = "Camera")
-	class UCameraComponent* FollowCamera;
-
-	// 头顶控件组件
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
-	class UWidgetComponent* OverheadWidget;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包组件", meta=(AllowPrivateAccess=true))
-	class UBackpackComponent* BackpackComponent;
-
-	// 武器组件
-	UPROPERTY(ReplicatedUsing="OnRep_OverlappingWeapon")
-	class AWeapon* OverlappingWeapon;
-
-	// 战斗组件
-	UPROPERTY(VisibleAnywhere)
-	class UCombatComponent* Combat;
-
-	
-
-	/**
-	 * 成员属性
-	 */
-
-	// 开火蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* FireWeaponMontage;
-
-	// 重新装弹蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* ReloadMontage;
-	// 被击打动画蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* HitReactionMontage;
-
-	// 死亡动画蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* ElimMontage;
-	
-	UPROPERTY(EditAnywhere, Category="Camera")
-	float CameraThreshold = 200.0f;
-
-	// 最大生命值
-	UPROPERTY(EditAnywhere, Category = "Player State")
-	float MaxHealth = 100.0f;
-
-	// 生命值
-	UPROPERTY(ReplicatedUsing=OnRep_Health, VisibleAnywhere, Category="Player State")
-	float Health = 100.0f;
-
-	// 是否死亡
-	bool bElimmed = false;
-	
-	FTimerHandle ElimTimer;
-
-	UPROPERTY(EditAnywhere, Category="Elim")
-	float ElimDelay = 3.0f;
-
-	/*
-	 * 溶解效果
-	 */
-	UPROPERTY(VisibleAnywhere)
-	UTimelineComponent* DissolveTimelineComponent;
-	
-	FOnTimelineFloat DissolveTrack;
-
-	UPROPERTY(EditAnywhere)
-	// 溶解曲线
-	UCurveFloat* DissolveCurve;
-	
-
-	// 动态材质实例
-	UPROPERTY(VisibleAnywhere, Category="Elim")
-	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
-
-	UPROPERTY(VisibleAnywhere, Category="Elim")
-	UMaterialInstance* DissolverMaterialInstance;
-
-	class ABlasterPlayerState* BlasterPlayerState;
-
-	class ABlasterPlayerController* BlasterPlayerController;
 
 	/* Enhanced Input  */
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputMappingContext")
@@ -264,6 +57,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="瞄准")
 	TObjectPtr<UInputAction> EIA_Aim;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="取消瞄准")
+	TObjectPtr<UInputAction> EIA_UnAim;
 
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="蹲伏")
 	TObjectPtr<UInputAction> EIA_Crouch;
@@ -314,6 +110,101 @@ private:
 	TObjectPtr<UInputAction> EIA_Interactive;
 	/* Enhanced Input  */
 
+	UPROPERTY(BlueprintReadOnly, Replicated, Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
+	bool bHasPickableObject;
+
+	UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取物品数据")
+	FPickupObjectData PickableObjectData;
+	
+private:
+
+	/*
+	 * 组件
+	 */
+	// 弹簧臂组件
+	UPROPERTY(EditAnywhere, Category = "Camera", DisplayName="弹簧臂组件")
+	class USpringArmComponent* CameraBoom;
+
+	// 摄像机组件
+	UPROPERTY(EditAnywhere, Category = "Camera", DisplayName="摄像机组件")
+	class UCameraComponent* FollowCamera;
+
+	// 头顶控件组件
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true), DisplayName="头部控件组件")
+	class UWidgetComponent* OverheadWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包组件", meta=(AllowPrivateAccess=true))
+	class UBackpackComponent* BackpackComponent;
+
+	// TODO - 武器，和战斗组件
+	// 武器
+	UPROPERTY(ReplicatedUsing="OnRep_OverlappingWeapon", DisplayName="武器")
+	class AWeapon* OverlappingWeapon;
+
+	// 战斗组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component", DisplayName="战斗组件", meta=(AllowPrivateAccess))
+	class UCombatComponent* CombatCopmponent;
+	
+	// 开火蒙太奇
+	UPROPERTY(EditAnywhere, Category="Combat")
+	UAnimMontage* FireWeaponMontage;
+
+	// 重新装弹蒙太奇
+	UPROPERTY(EditAnywhere, Category="Combat")
+	UAnimMontage* ReloadMontage;
+	// 被击打动画蒙太奇
+	UPROPERTY(EditAnywhere, Category="Combat")
+	UAnimMontage* HitReactionMontage;
+
+	// 死亡动画蒙太奇
+	UPROPERTY(EditAnywhere, Category="Combat")
+	UAnimMontage* ElimMontage;
+	
+	UPROPERTY(EditAnywhere, Category="Camera")
+	float CameraThreshold = 200.0f;
+
+	// 最大生命值
+	UPROPERTY(EditAnywhere, Category = "Player State")
+	float MaxHealth = 100.0f;
+
+	// 生命值
+	UPROPERTY(ReplicatedUsing=OnRep_Health, VisibleAnywhere, Category="Player State")
+	float Health = 100.0f;
+
+	// 是否死亡
+	bool bElimmed = false;
+	
+	FTimerHandle ElimTimer;
+
+	UPROPERTY(EditAnywhere, Category="Elim")
+	float ElimDelay = 3.0f;
+
+	/*
+	 * 溶解效果
+	 */
+	UPROPERTY(VisibleAnywhere, DisplayName="溶解时间线组件")
+	UTimelineComponent* DissolveTimelineComponent;
+
+	// 溶解时间线组件委托
+	FOnTimelineFloat DissolveTrack;
+
+	UPROPERTY(EditAnywhere, DisplayName="溶解曲线")
+	UCurveFloat* DissolveCurve;
+	
+
+	// 动态材质实例
+	UPROPERTY(VisibleAnywhere, Category="Elim")
+	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
+
+	UPROPERTY(VisibleAnywhere, Category="Elim")
+	UMaterialInstance* DissolverMaterialInstance;
+
+	class ABlasterPlayerState* BlasterPlayerState;
+
+	class ABlasterPlayerController* BlasterPlayerController;
+
+	
+
 
 	/* 
 	 * 控制鼠标转向移动速度、鼠标上下视角移动速度 可以"弃用"，因为 PlayerController 原本就有属性控制，诸如：InputPitchScale_DEPRECATED 等。
@@ -323,11 +214,11 @@ private:
 	 * AddControllerYawInput 等函数实现使用相关函数
 	 */
 	// 鼠标转向移动速度控制
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess), DisplayName="控制鼠标左右转向变化速率")
 	float MouseTurnRate = 1.0f;
 
 	// 鼠标上下视角移动速度控制
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess), DisplayName="控制鼠标俯仰视变化速率")
 	float MouseLookupRate = 1.0f;
 
 	// 用于禁止玩家移动输入(不包括旋转)和装备武器
@@ -335,33 +226,33 @@ private:
 	bool bDisableGameplay = false;
 
 	// 玩家速度方向
-	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess))
+	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="速度移动方向")
 	EMovementDirection MovementDirection;
 
-	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess))
+	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="是否跳跃中")
 	bool bIsJump;
 
-	UPROPERTY(BlueprintReadWrite, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(BlueprintReadWrite, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="跳跃到地面的过渡混合值")
 	float JumpToGroundBlend;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="跳跃到地面的过渡距离")
 	float JumpToGroundTraceDistance = 20.0f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="行走移动速度")
 	float WalkSpeed=300.0f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="加速移动速度")
 	float SprintSpeed=650.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float MovementSpeedLevel;
 
 	// 最大向上仰视角度 0-180
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="最大向上仰视角度 0-180")
 	float MaxTopPitch = 40;
 
 	// 最大向下俯视角度 0-180
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="最大向下俯视角度 0-180")
 	float MaxLowPitch = 60;
 
 	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
@@ -376,26 +267,183 @@ private:
 	UPROPERTY(EditAnywhere, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float AO_Blend_Speed = 1;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测起点偏移值")
 	float PickupTraceStartOffset = 100;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测半径")
 	float PickupTraceRadius = 10;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测距离")
 	float PickupTraceDistance = 100;
 
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测物品类型")
 	TEnumAsByte<ETraceTypeQuery> PickableTraceTypeQuery;
 
-	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess))
-	AActor* CurrentPickableActor;
+	// UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取物品")
+	// AActor* CurrentPickableActor;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的距离")
-	float InteractiveTraceDistance=100;
+	float InteractiveTraceDistance = 100;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的检测对象")
 	TEnumAsByte<ETraceTypeQuery> InteractiveTraceType;
+
+	
+public:
+
+	UFUNCTION()
+	void CurrentPickableActorInter();
+	
+	// Sets default values for this character's properties
+	ABlasterCharacter();
+
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void PostInitializeComponents() override;
+
+	/* 动画蒙太奇 */
+	// 播放开火动画蒙太奇
+	void PlayFireMontage(bool bIsAiming);
+
+	// 播放受击动画蒙太奇
+	void PlayHitReactMontage();
+
+	// 播放重装弹蒙太奇
+	void PlayReloadMontage();
+
+	// 播放死亡动画蒙太奇
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayElimMontage();
+	/* 动画蒙太奇 */
+
+	// 死亡处理
+	void Elim();
+
+
+	/*
+	 * @description:GetItemInfoFromTable - 从物品数据表获取物品数据
+	 * @param Id - 物品的唯一Id
+	 *	
+	 * @return FItemInfo - 物品数据结构
+	 * ...
+	 *
+	 *	note：TODO 临时放置，便于获取数据表
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 19:07:52
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
+	FItemInfo GetItemInfoFromTable(FName Id);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Interactive", DisplayName="交互")
+	void Interactive();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Pickup", DisplayName="检测可拾取对象")
+	void TracePickableObject(EPickableObjectState PickableObjectState);
+
+	// TODO 检测到可拾取物体时，高亮显示
+	void HighLightPickableObject();
+
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category="Equipment", DisplayName="获取装备Actor类")
+	FEquipmentInfo GetEquipmentActorClass(FName EquipmentActorName);
+	
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	/*
+	 * 玩家输入处理函数
+	 */
+	// 前后移动输入
+	void MoveForward(const FInputActionValue& ActionValue);
+
+	// 左右移动输入
+	void MoveRight(const FInputActionValue& ActionValue);
+
+	// 转向(鼠标X轴)输入
+	void Turn(const FInputActionValue& ActionValue);
+
+	// 上下俯仰视(鼠标Y轴)输入
+	void LookUp(const FInputActionValue& ActionValue);
+
+	// 跳跃
+	void JumpButtonPressed();
+
+	// 装备武器
+	void EquipButtonPressed();
+
+	// 蹲伏
+	void CrouchButtonPressed();
+
+	// 加速
+	void SprintButtonPressed();
+
+	// 停止加速
+	void SprintButtonReleased();
+
+	// 瞄准
+	void AimButtonPressed();
+
+	// 取消瞄准
+	void AimButtonReleased();
+
+	// 开火
+	void FireButtonPressed();
+
+	// 取消开火
+	void FireButtonReleased();
+
+	// 装填子弹
+	void ReloadButtonPressed();
+
+	// 打开或关闭背包
+	void OpenOrCloseBackpack();
+
+	/*
+	 * @description: RotateDragItemWidget - 用于处理用户输入，旋转正在拖动的物品控件
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 19:07:10
+	 */
+	void RotateDragItemWidget();
+
+	/*
+	 * @description: Pickup 拾取
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月27日 星期三 10:07:22
+	 */
+	void Pickup();
+
+	UFUNCTION(Category="Equipment")
+	void Equipment();
+
+	// UFUNCTION(Server, Reliable, Category="Equipment")
+	// void SC_Equipment();
+	
+	/* 玩家输入处理函数 */
+
+	// 收到伤害处理方法
+	UFUNCTION(DisplayName="接收伤害")
+	void ReceiveDamage(AActor* DamagedActor
+		, float Damage
+		, const UDamageType* DamageType
+		, AController* InstigatorController
+		, AActor* DamagerCauser);
+
+	// 更新 Hud
+	void UpdateHUDHealth();
+
+	// 玩家 Playerstate
+	void PollInit();
 	
 private:
 	/*
@@ -419,9 +467,6 @@ private:
 
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
-	
-	UFUNCTION(Server, Reliable)
-	void ServerEquipButtomPressed();
 
 	/*
 	 * @description: 更新玩家的速度方向 - 八方向
@@ -447,24 +492,15 @@ private:
 
 	void UpdateAimOffset(float DeltaTime);
 
-	void TracePickableOjbect();
-
 public:
-	/*
-		 * @description:
-		 * @param
-		 * @return
-		 * ...
-		 * 
-		 * @author: yejianbin
-		 * @version: v1.0
-		 * @createTime: 2022年06月19日 星期日 12:06:22
-		 */
+
+	// TODO - 优化，处理动画蓝图中跳跃到地面的过渡动画
 	UFUNCTION(BlueprintImplementableEvent)
 	void UpdateJumpToGroundBlend();
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void PickableObjectTrace(FVector Start, FVector End, FHitResult HitResult);
+
 	/* Weapon 武器 */
 	void SetOverlappingWeapon(AWeapon* Weapon);
 
@@ -474,7 +510,7 @@ public:
 
 	ECombatState GetCombatState() const;
 
-	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
+	FORCEINLINE UCombatComponent* GetCombatComponent() const { return CombatCopmponent; }
 
 	/* Weapon 武器*/
 
@@ -519,4 +555,6 @@ public:
 	/* Character Properties*/
 	
 	FORCEINLINE float GetDisableGameplay() const { return bDisableGameplay; }
+
+	FORCEINLINE UBackpackComponent* GetBackpackComponent() const { return BackpackComponent; };
 };

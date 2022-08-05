@@ -13,7 +13,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/UnrealGame.h"
-#include "UnrealGame/BlasterComponent/CombatComponent.h"
 #include "UnrealGame/GameMode/BlasterGameMode.h"
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
 #include "UnrealGame/Weapon/Weapon.h"
@@ -22,16 +21,25 @@
 #include "EnhancedInput/Public/EnhancedInputComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "UnrealGame/Component/Combat/CombatComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackWidget.h"
 #include "UnrealGame/HUD/Backpack/ItemBase.h"
 #include "UnrealGame/InteractiveActor/InteractiveDoor.h"
+#include "DataRegistrySubsystem.h"
+#include "UnrealGame/DataAsset/ItemAsset.h"
+#include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
+#include "UnrealGame/Struct/UnrealGameStruct.h"
+
+void ABlasterCharacter::CurrentPickableActorInter()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Black, TEXT("123"));
+}
 
 ABlasterCharacter::ABlasterCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	
@@ -47,8 +55,8 @@ ABlasterCharacter::ABlasterCharacter()
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
 
-	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
-	Combat->SetIsReplicated(true);
+	// Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
+	// Combat->SetIsReplicated(true);
 
 	BackpackComponent = CreateDefaultSubobject<UBackpackComponent>(TEXT("BackpackComponent"));
 	BackpackComponent->SetIsReplicated(true);
@@ -73,6 +81,7 @@ ABlasterCharacter::ABlasterCharacter()
 	// 溶解
 	DissolveTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 
+	CombatCopmponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -82,6 +91,8 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
+	DOREPLIFETIME(ABlasterCharacter, PickableObjectData);
+	DOREPLIFETIME(ABlasterCharacter, bHasPickableObject);
 	
 }
 
@@ -89,16 +100,19 @@ void ABlasterCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (Combat)
+	if (GetCombatComponent())
 	{
-		Combat->BlasterCharacter = this;
+		GetCombatComponent()->PlayerCharacter = this;
+		GetCombatComponent()->PlayerController = Cast<ABlasterPlayerController>(GetController());
 	}
 }
 
-void ABlasterCharacter::Interactive()
+void ABlasterCharacter::Interactive_Implementation()
 {
-	
-
+	if (!HasAuthority())
+	{
+		return;
+	}
 	// 1. 先进行射线检测
 	FVector CameraLocation = FollowCamera->GetComponentLocation();
 	FVector CameraForwardDirectional = FollowCamera->GetForwardVector();
@@ -148,8 +162,8 @@ void ABlasterCharacter::BeginPlay()
 		// 绑定伤害事件委托
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
 	}
-
 }
+
 
 // Called every frame
 void ABlasterCharacter::Tick(float DeltaTime)
@@ -172,15 +186,15 @@ void ABlasterCharacter::Tick(float DeltaTime)
 
 	UpdateAimOffset(DeltaTime);
 	
-	TracePickableOjbect();
+	HighLightPickableObject();
 }
 
 void ABlasterCharacter::PlayFireMontage(bool bIsAiming)
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
-	{
-		return;
-	}
+	// if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
+	// {
+	// 	return;
+	// }
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -208,10 +222,10 @@ void ABlasterCharacter::PlayHitReactMontage()
 
 void ABlasterCharacter::PlayReloadMontage()
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
-	{
-		return;
-	}
+	// if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
+	// {
+	// 	return;
+	// }
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -220,15 +234,15 @@ void ABlasterCharacter::PlayReloadMontage()
 		AnimInstance->Montage_Play(ReloadMontage);
 		FName SectionName;
 
-		switch (Combat->EquippedWeapon->GetWeaponType())
-		{
-			case EWeaponType::EWT_AssaultRifle:
-				SectionName = FName("Rifle");
-				break;
-			
-			default:
-				break;
-		}
+		// switch (Combat->EquippedWeapon->GetWeaponType())
+		// {
+		// 	case EWeaponType::EWT_AssaultRifle:
+		// 		SectionName = FName("Rifle");
+		// 		break;
+		// 	
+		// 	default:
+		// 		break;
+		// }
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
@@ -359,26 +373,6 @@ void ABlasterCharacter::JumpButtonPressed()
 	}
 }
 
-void ABlasterCharacter::EquipButtonPressed()
-{
-	if (bDisableGameplay)
-	{
-		return;
-	}
-	
-	if (Combat)
-	{
-		if (HasAuthority())
-		{
-			Combat->EquipWeapon(OverlappingWeapon);
-		}
-		else
-		{
-			ServerEquipButtomPressed();
-		}
-	}
-}
-
 void ABlasterCharacter::CrouchButtonPressed()
 {
 	if (bDisableGameplay)
@@ -408,22 +402,18 @@ void ABlasterCharacter::SprintButtonReleased()
 
 void ABlasterCharacter::AimButtonPressed()
 {
-	if (bDisableGameplay)
-	{
-		return;
-	}
 	
-	if (Combat)
+	if (GetCombatComponent())
 	{
-		Combat->SetAiming(true);
+		GetCombatComponent()->Aim(true);
 	}
 }
 
 void ABlasterCharacter::AimButtonReleased()
 {
-	if (Combat)
+	if (GetCombatComponent())
 	{
-		Combat->SetAiming(false);
+		GetCombatComponent()->Aim(false);
 	}
 }
 
@@ -435,9 +425,9 @@ void ABlasterCharacter::FireButtonPressed()
 		return;
 	}
 	
-	if (Combat)
+	if (CombatCopmponent)
 	{
-		Combat->FireButtonPressed(true);
+		// Combat->FireButtonPressed(true);
 	}
 }
 
@@ -448,9 +438,9 @@ void ABlasterCharacter::FireButtonReleased()
 		return;
 	}
 	
-	if (Combat)
+	if (CombatCopmponent)
 	{
-		Combat->FireButtonPressed(false);
+		//Combat->FireButtonPressed(false);
 	}
 }
 
@@ -461,9 +451,9 @@ void ABlasterCharacter::ReloadButtonPressed()
 		return;
 	}
 	
-	if (Combat)
+	if (CombatCopmponent)
 	{
-		Combat->Reload();
+		//Combat->Reload();
 	}
 }
 
@@ -479,58 +469,35 @@ void ABlasterCharacter::RotateDragItemWidget()
 {
 	if (BackpackComponent)
 	{
-		if (BackpackComponent->BackpackWidget)
+		if (BackpackComponent->GetBackpackWidget())
 		{
-			BackpackComponent->BackpackWidget->RotateDragItemWidget();
+			BackpackComponent->GetBackpackWidget()->RotateDragItemWidget();
 		}
 	}
 }
 
 void ABlasterCharacter::Pickup()
 {
-	bool Successded = false;
-	
-	if (CurrentPickableActor)
-	{
-		AItemBase* Item = Cast<AItemBase>(CurrentPickableActor);
+	// 检测检测
+	TracePickableObject(EPickableObjectState::Pickup);
 
-		if (ensure(Item))
-		{
-			// FBackpackItemInfo BackpackItemInfo = NewObject<FBackpackItemInfo>(this, TEXT("BackpackItemInfo"));
-			FBackpackItemInfo BackpackItemInfo = Item->GetBackpackItemInfo();
-			
-			Successded = BackpackComponent->TryAddItem(BackpackItemInfo);
-
-			if (!Successded && BackpackItemInfo.CanRotate())
-			{
-				// 旋转物品
-				BackpackItemInfo.Rotate();
-				Successded = BackpackComponent->TryAddItem(BackpackItemInfo);
-			}
-
-			if (Successded)
-			{
-				CurrentPickableActor->Destroy(true);
-			}
-			else
-			{
-				if (BackpackItemInfo.bIsRotated)
-				{
-					// 复原旋转
-					BackpackItemInfo.Rotate();
-				}
-			}
-		}
-	}
+	// 实际拾取
+	GetBackpackComponent()->Pickup();
 }
 
-void ABlasterCharacter::ServerEquipButtomPressed_Implementation()
+void ABlasterCharacter::Equipment()
 {
-	if (Combat)
-	{
-		Combat->EquipWeapon(OverlappingWeapon);
-	}
+	GetCombatComponent()->SC_Equipment();
 }
+
+// void ABlasterCharacter::SC_Equipment_Implementation()
+// {
+// 	if (!HasAuthority())
+// 	{
+// 		return;
+// 	}
+// 	
+// }
 
 void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 {
@@ -744,12 +711,11 @@ void ABlasterCharacter::UpdateAimOffset(float DeltaTime)
 	
 }
 
-void ABlasterCharacter::TracePickableOjbect()
+void ABlasterCharacter::HighLightPickableObject()
 {
 	if (bHasPickableObject)
 	{
 		APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
 		if (ensure(PlayerController))
 		{
 			FVector2D ViewportSize;
@@ -759,8 +725,19 @@ void ABlasterCharacter::TracePickableOjbect()
 			
 			FVector WorldLocation;
 			FVector WorldDirection;
-			UGameplayStatics::DeprojectScreenToWorld(PlayerController, CrosshairLocation, WorldLocation, WorldDirection);
 
+			
+			PlayerController->DeprojectScreenPositionToWorld(CrosshairLocation.X, CrosshairLocation.Y, WorldLocation, WorldDirection);
+
+			// TODO 为什么在客户端的调用的 RPC 为什么得到的投影坐标和方向都是 0 ？
+			if (WorldDirection.Size() == 0)
+			{
+				WorldLocation = GetFollowCamera()->GetComponentLocation();
+
+				WorldDirection = CameraBoom->GetComponentLocation() - WorldLocation;
+				WorldDirection.Normalize();
+			}
+			
 			FVector TraceStartLocation = WorldLocation + (WorldDirection * PickupTraceStartOffset);
 			FVector TraceEndLocation = WorldLocation + (WorldDirection * PickupTraceDistance);
 			TArray<AActor*> IgnoreActors;
@@ -779,10 +756,72 @@ void ABlasterCharacter::TracePickableOjbect()
 
 			if (HitResult.bBlockingHit)
 			{
-				CurrentPickableActor = HitResult.GetActor();
-			} else
+				// 
+			}
+		}
+	}
+}
+
+void ABlasterCharacter::TracePickableObject_Implementation(EPickableObjectState PickableObjectState)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
+	if (bHasPickableObject)
+	{
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+		if (ensure(PlayerController))
+		{
+			FVector2D ViewportSize;
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+
+			FVector2D CrosshairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
+			
+			FVector WorldLocation;
+			FVector WorldDirection;
+
+			
+			PlayerController->DeprojectScreenPositionToWorld(CrosshairLocation.X, CrosshairLocation.Y, WorldLocation, WorldDirection);
+
+			if (WorldDirection.Size() == 0)
 			{
-				CurrentPickableActor = nullptr;
+				WorldLocation = GetFollowCamera()->GetComponentLocation();
+
+				WorldDirection = CameraBoom->GetComponentLocation() - WorldLocation;
+				WorldDirection.Normalize();
+			}
+			
+			FVector TraceStartLocation = WorldLocation + (WorldDirection * PickupTraceStartOffset);
+			FVector TraceEndLocation = WorldLocation + (WorldDirection * PickupTraceDistance);
+			TArray<AActor*> IgnoreActors;
+			FHitResult HitResult;
+			
+			UKismetSystemLibrary::SphereTraceSingle(GetWorld(),
+				TraceStartLocation,
+				TraceEndLocation,
+				PickupTraceRadius,
+				PickableTraceTypeQuery,
+				false,
+				IgnoreActors,
+				EDrawDebugTrace::ForOneFrame,
+				HitResult,
+				true);
+
+			const bool HitBlock = HitResult.bBlockingHit;
+			if (HitBlock)
+			{
+				PickableObjectData.PickableActor = HitResult.GetActor();
+				PickableObjectData.HandleState = EPickableObjectState::Default;
+				PickableObjectData.TargetState = PickableObjectState;
+			}
+			else
+			{
+				PickableObjectData.PickableActor = nullptr;
+				PickableObjectData.HandleState = EPickableObjectState::Default;
+				PickableObjectData.TargetState = EPickableObjectState::Default;
 			}
 		}
 	}
@@ -832,6 +871,7 @@ void ABlasterCharacter::TracePickableOjbect()
 // 	}
 // }
 
+// TODO 武器显示控件
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (!Weapon && OverlappingWeapon)
@@ -852,32 +892,34 @@ void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 
 bool ABlasterCharacter::IsWeaponEquipped()
 {
-	return (Combat && Combat->EquippedWeapon);
+	return (GetCombatComponent() && GetCombatComponent()->EquippedWeapon);
 }
 
 bool ABlasterCharacter::IsAiming()
 {
-	return (Combat && Combat->bIsAiming);
+	return (GetCombatComponent() && GetCombatComponent()->bIsAiming);
 }
 
 AWeapon* ABlasterCharacter::GetEquippedWeapon()
 {
-	if (Combat == nullptr)
+	if (GetCombatComponent() == nullptr)
 	{
 		return nullptr;
 	}
 
-	return Combat->EquippedWeapon;
+	return GetCombatComponent()->EquippedWeapon;
 }
 
+// TODO 射击命中目标
 FVector ABlasterCharacter::GetHitTarget() const
 {
-	if (Combat == nullptr)
+	if (GetCombatComponent() == nullptr)
 	{
 		return FVector();
 	}
 
-	return Combat->HitTarget;
+	//return Combat->HitTarget;
+	return FVector();
 }
 
 // Called to bind functionality to input
@@ -890,7 +932,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	// PlayerInputComponent->BindAxis("Turn", this, &ABlasterCharacter::Turn);
 	// PlayerInputComponent->BindAxis("Lookup", this, &ABlasterCharacter::LookUp);
 	//
-	//
 	// PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ABlasterCharacter::Jump);
 	// PlayerInputComponent->BindAction("Equip", IE_Pressed, this, &ABlasterCharacter::EquipButtonPressed);
 	// PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &ABlasterCharacter::CrouchButtonPressed);
@@ -900,7 +941,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	// PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ABlasterCharacter::FireButtonPressed);
 	// PlayerInputComponent->BindAction("Fire", IE_Released, this, &ABlasterCharacter::FireButtonReleased);
 	// PlayerInputComponent->BindAction("Reload", IE_Released, this, &ABlasterCharacter::ReloadButtonPressed);
-	// TODO 使用增强输入 EnhancedInput
 
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
@@ -918,8 +958,11 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Aim)
 		{
-			// TODO - 不同武器的瞄准由武器决定，这里应该使用委托来处理
-			EInputComponent->BindAction(EIA_Aim, ETriggerEvent::Triggered, Combat, &UCombatComponent::Fire);
+			EInputComponent->BindAction(EIA_Aim, ETriggerEvent::Triggered, this, &ThisClass::AimButtonPressed);
+		}
+		if (EIA_UnAim)
+		{
+			EInputComponent->BindAction(EIA_UnAim, ETriggerEvent::Triggered, this, &ThisClass::AimButtonReleased);
 		}
 
 		if (EIA_Crouch)
@@ -940,6 +983,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		if (EIA_Equipment)
 		{
 			// TODO
+			EInputComponent->BindAction(EIA_Equipment, ETriggerEvent::Triggered, this, &ThisClass::Equipment);
 		}
 
 		if (EIA_Jump)
@@ -1060,11 +1104,11 @@ void ABlasterCharacter::PollInit()
 
 void ABlasterCharacter::Elim()
 {
-	if (Combat && Combat->EquippedWeapon)
-	{
-		// 如果死亡时装备武器，将丢弃武器
-		// Combat->EquippedWeapon->Dropped();
-	}
+	// if (Combat && Combat->EquippedWeapon)
+	// {
+	// 	// 如果死亡时装备武器，将丢弃武器
+	// 	// Combat->EquippedWeapon->Dropped();
+	// }
 	
 	bElimmed = true;
 
@@ -1156,10 +1200,11 @@ void ABlasterCharacter::StartDissolve()
 
 ECombatState ABlasterCharacter::GetCombatState() const
 {
-	if (Combat == nullptr)
-	{
-		return ECombatState::ECS_MAX;
-	}
-
-	return Combat->CombatState;
+	// if (Combat == nullptr)
+	// {
+	// 	return ECombatState::ECS_MAX;
+	// }
+	//
+	// return Combat->CombatState;
+	return ECombatState::Combat;
 }

@@ -18,11 +18,13 @@ AItemBase::AItemBase()
 	// 在构造函数中构造物品的基础框架
 	
 	PhysicMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PhysicMeshComponent"));
-
+	PhysicMeshComponent->SetIsReplicated(true);
+	
 	SetRootComponent(PhysicMeshComponent);
 
 	PickableAreaComponent = CreateDefaultSubobject<USphereComponent>(TEXT("PickableAreaComponent"));
 	PickableAreaComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	PickableAreaComponent->SetIsReplicated(true);
 
 	PickableAreaComponent->OnComponentBeginOverlap.AddDynamic(this, &AItemBase::OnComponentBeginOverlap);
 	PickableAreaComponent->OnComponentEndOverlap.AddDynamic(this, &AItemBase::OnComponentEndOverlap);

@@ -28,6 +28,8 @@ public:
 
 	ABlasterGameMode();
 
+	virtual void BeginDestroy() override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	// 被淘汰的玩家
@@ -38,6 +40,8 @@ public:
 	// 游戏模式 - 请求重生成
 	virtual void RequestRespawn(class ACharacter* ElimmedCharacter, AController* ElimmedController);
 
+	UFUNCTION(BlueprintImplementableEvent, Category="Data Asset Manager", DisplayName="加载主资产")
+	void LoadPrimaryDataAsset();
 
 	UPROPERTY(EditDefaultsOnly)
 	float WarmupTime = 10.0f;

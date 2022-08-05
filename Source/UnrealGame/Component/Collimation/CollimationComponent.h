@@ -14,36 +14,55 @@ enum class ECollimationType : uint8
 	Snipe UMETA(DisplayName="Snipe")
 };
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+// UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(Blueprintable, BlueprintType, meta=(BlueprintSpawnableComponent))
 class UNREALGAME_API UCollimationComponent : public UActorComponent
 {
 	GENERATED_BODY()
-
-public:	
-	// Sets default values for this component's properties
-	UCollimationComponent();
-
-	virtual void ShowCollimation() PURE_VIRTUAL(UCollimationSceneComponent::ShowCollimation, );
-
-	virtual void HideCollimation() PURE_VIRTUAL(UCollimationSceneComponent::HideCollimation, );
-
-	// 十字准星扩散
-	virtual void UpdateSpread() PURE_VIRTUAL(UCollimationSceneComponent::UpdateSpread, );
-
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+public:
 
-public:	
+	UPROPERTY(BlueprintReadOnly, Category="Reference", DisplayName="玩家角色")
+	class ABlasterCharacter* PlayerCharacter;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Widget", DisplayName="准星UI控件类")
+	TSubclassOf<class UUserWidget> CrosshairWidgetClass;
 
+	UPROPERTY(BlueprintReadOnly, Category="Widget", DisplayName="准星UI控件")
+	class UCrosshairWidget* CrosshairWidget;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI | Crosshairs", DisplayName="准心扩大曲线资产")
+	UCurveFloat* CrosshairOffsetCurve;
+	
+	// 外部动态改变 Spread 值来影响准星的扩散
+	UPROPERTY(BlueprintReadOnly, Category="Collimation", DisplayName="瞄准扩散速度")
 	float Spread;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category="CollimationType")
+	
+	UPROPERTY(EditDefaultsOnly, Category="CollimationType", DisplayName="瞄准准星类型")
 	ECollimationType CollimationType;
+	
+public:	
+	// Sets default values for this component's properties
+	// UCollimationComponent(const FObjectInitializer& ObjectInitializer);
+	UCollimationComponent();
+
+	virtual void Init(ABlasterCharacter* InPlayerCharacter);
+
+	virtual void ShowCollimation() PURE_VIRTUAL(UCollimationSceneComponent::ShowCollimation);
+
+	virtual void HideCollimation() PURE_VIRTUAL(UCollimationSceneComponent::HideCollimation);
+
+	// 十字准星扩散
+	virtual void UpdateSpread(float InSpread) PURE_VIRTUAL(UCollimationSceneComponent::UpdateSpread, );
+
+protected:
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+	// Called when the game starts
+	virtual void BeginPlay() override;
 
 public:
 	FORCEINLINE ECollimationType GetCollimationType() const { return CollimationType; };

@@ -10,7 +10,7 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 
 	int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
 
-	if(NumberOfPlayers == 2)
+	if(NumberOfPlayers == 1)
 	{
 		UWorld* World = GetWorld();
 
@@ -18,7 +18,17 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 		{
 			// 使用无缝过渡(需要设置无缝过渡地图)
 			bUseSeamlessTravel = true;
-			World->ServerTravel(FString("Game/UnrealGame/Maps/BlasterMap?listen"));
+			// World->ServerTravel(FString("Game/UnrealGame/Maps/BlasterMap?listen"));
+			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, TravelUrl);
+			
+			bool Result = World->ServerTravel(TravelUrl);
+			if (Result)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Travel Succeed!")));
+			} else
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, FString::Printf(TEXT("Travel Fail...")));
+			}
 		}
 	}
 }

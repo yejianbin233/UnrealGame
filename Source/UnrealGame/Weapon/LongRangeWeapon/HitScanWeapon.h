@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GunWeapon.h"
+#include "LongRangeWeapon.h"
 #include "HitScanWeapon.generated.h"
 
 
@@ -19,7 +19,7 @@ class UParticleSystem;
  * 
  */
 UCLASS()
-class UNREALGAME_API AHitScanWeapon : public AGunWeapon
+class UNREALGAME_API AHitScanWeapon : public ALongRangeWeapon
 {
 	GENERATED_BODY()
 
@@ -29,8 +29,6 @@ class UNREALGAME_API AHitScanWeapon : public AGunWeapon
  */
 public:
 
-	virtual void Fire(const FVector& HitTarget) override;
-	
 protected:
 
 	

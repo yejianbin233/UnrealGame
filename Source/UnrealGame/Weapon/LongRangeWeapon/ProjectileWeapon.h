@@ -3,20 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GunWeapon.h"
-#include "UnrealGame/Weapon/Weapon.h"
+#include "LongRangeWeapon.h"
 #include "ProjectileWeapon.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UNREALGAME_API AProjectileWeapon : public AGunWeapon
+class UNREALGAME_API AProjectileWeapon : public ALongRangeWeapon
 {
 	GENERATED_BODY()
 
 public:
-	virtual void Fire(const FVector& HitTarget) override;
+	virtual void Fire() override;
 	
 protected:
 

@@ -27,9 +27,9 @@ void UBackpackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	// ...
-	BlasterCharacter = Cast<ABlasterCharacter>(GetOwner());
+	PlayerCharacter = Cast<ABlasterCharacter>(GetOwner());
 
-	PlayerController = Cast<APlayerController>(BlasterCharacter->GetController());
+	PlayerController = Cast<APlayerController>(PlayerCharacter->GetController());
 
 	int CellNum = Row * Column;
 	Items.SetNum(CellNum);
@@ -56,8 +56,49 @@ void UBackpackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UBackpackComponent, Items);
+	DOREPLIFETIME_CONDITION(UBackpackComponent, Items, COND_OwnerOnly);
 }
+
+void UBackpackComponent::Pickup_Implementation()
+{
+	if (!PlayerCharacter->HasAuthority())
+	{
+		return;
+	}
+	
+	AItemBase* PickItem = Cast<AItemBase>(PlayerCharacter->PickableObjectData.PickableActor);
+
+	if (PickItem
+		&& (PlayerCharacter->PickableObjectData.TargetState == EPickableObjectState::Pickup || PlayerCharacter->PickableObjectData.TargetState == EPickableObjectState::Equip))
+	{
+		FBackpackItemInfo BackpackItemInfo = PickItem->GetBackpackItemInfo();
+
+		bool PickupResult = TryAddItem(BackpackItemInfo);
+
+		if (!PickupResult && BackpackItemInfo.CanRotate())
+		{
+			// 旋转物品
+			BackpackItemInfo.Rotate();
+			PickupResult = TryAddItem(BackpackItemInfo);
+		}
+
+		if (PickupResult)
+		{
+			// 销毁并置空
+			PlayerCharacter->PickableObjectData.PickableActor->Destroy();
+			PlayerCharacter->PickableObjectData.PickableActor = nullptr;
+			PlayerCharacter->PickableObjectData.HandleState = EPickableObjectState::Pickup;
+		}
+		else
+		{
+			// 拾取失败
+			PlayerCharacter->PickableObjectData.PickableActor = nullptr;
+			PlayerCharacter->PickableObjectData.HandleState = EPickableObjectState::Default;
+			PlayerCharacter->PickableObjectData.TargetState = EPickableObjectState::Default;
+		}
+	}
+}
+
 
 bool UBackpackComponent::TryAddItem(FBackpackItemInfo& InItem)
 {
@@ -111,7 +152,7 @@ bool UBackpackComponent::TryAddItem(FBackpackItemInfo& InItem)
 	if (Result)
 	{
 		// UE_LOG(LogTemp, Warning, TEXT("Add Index = %f"), Index)
-		AddNewItem(&InItem, Index);
+		AddNewItem(InItem, Index);
 
 		OnBackpackItemChanged.Broadcast();
 		
@@ -121,36 +162,18 @@ bool UBackpackComponent::TryAddItem(FBackpackItemInfo& InItem)
 	return false;
 }
 
-bool UBackpackComponent::TryInsertItem(FBackpackItemInfo Item, int Index)
+void UBackpackComponent::TryInsertItem_Implementation(FBackpackItemInfo Item, int Index)
 {
+	if (!PlayerCharacter->HasAuthority())
+	{
+		return;
+	}
+	
 	if (PlaceIndexCheck(Item, Index))
 	{
-		AddNewItem(&Item, Index);
+		AddNewItem(Item, Index);
 
 		OnBackpackItemChanged.Broadcast();
-		return true;
-	}
-
-	return false;
-}
-
-void UBackpackComponent::AddNewItem(FBackpackItemInfo* Item, int Index)
-{
-	int X = Item->OccupyCellXYLength.X;
-	int Y = Item->OccupyCellXYLength.Y;
-	Item->BackpackId = FString::Printf(TEXT("%d"), Index);
-	
-	for(int I=0; I < Y; I++)
-	{
-		int PlaceIndex = Index + Column * I;
-		
-		for(int J=0; J < X; J++)
-		{
-			int TempJ = FMath::Min(1, J);
-			PlaceIndex += TempJ;
-			
-			Items[PlaceIndex] = *Item;
-		}
 	}
 }
 
@@ -342,7 +365,8 @@ int UBackpackComponent::PlaceBackpackTipsBoxByIndex(int InIndex, FIntPoint Occup
 	return ResultIndex;
 }
 
-void UBackpackComponent::GetAllItem(TArray<FPositionItem>* PositionItems)
+
+void UBackpackComponent::GetAllItem(TArray<FPositionItem>& PositionItems)
 {
 	TSet<FBackpackItemInfo, FStruct_SetKeyFuncs> ItemSet;
 
@@ -361,12 +385,12 @@ void UBackpackComponent::GetAllItem(TArray<FPositionItem>* PositionItems)
 			CoordinateConvert(&TempIndex, &PositionItem.Position, &bToIndex);
 
 			ItemSet.Add(*IndexItem);
-			PositionItems->Add(PositionItem);
+			PositionItems.Add(PositionItem);
 		}
 	}
 }
 
-inline void UBackpackComponent::GetItems(TArray<FPositionItem>* PositionItems, FString Id)
+void UBackpackComponent::GetItems(TArray<FPositionItem>* PositionItems, FString Id)
 {
 	for(int Index=0; Index < Items.Num(); Index++)
 	{
@@ -387,6 +411,21 @@ inline void UBackpackComponent::GetItems(TArray<FPositionItem>* PositionItems, F
 	}
 }
 
+void UBackpackComponent::UpdateItemNum_Implementation(const FString& BackpackId, int Num)
+{
+	if (!PlayerCharacter->HasAuthority())
+	{
+		return;
+	}
+	for (auto Item : Items)
+	{
+		if (Item.BackpackId == BackpackId)
+		{
+			Item.Num = Num;
+		}
+	}
+}
+
 bool UBackpackComponent::IsValidPosition(FVector2D Position)
 {
 	bool ColumValid = UKismetMathLibrary::InRange_IntInt(0, Position.X, Column-1, true, true);
@@ -395,7 +434,7 @@ bool UBackpackComponent::IsValidPosition(FVector2D Position)
 	return ColumValid && RowValid;
 }
 
-void UBackpackComponent::OpenOrCloseBackpack()
+void UBackpackComponent::OpenOrCloseBackpack_Implementation()
 {
 	if (BackpackWidget == nullptr)
 	{
@@ -456,8 +495,12 @@ bool UBackpackComponent::RemoveItem(FString BackpackId)
 	return RemoveResult;
 }
 
-void UBackpackComponent::TryRemoveItem(FString BackpackId)
+void UBackpackComponent::TryRemoveItem_Implementation(const FString& BackpackId)
 {
+	if (!PlayerCharacter->HasAuthority())
+	{
+		return;
+	}
 	bool RemoveResult = RemoveItem(BackpackId);
 
 	if (RemoveResult)
@@ -466,13 +509,19 @@ void UBackpackComponent::TryRemoveItem(FString BackpackId)
 	}
 }
 
-void UBackpackComponent::CreateItemAfterDiscard(FString Id)
-{
-	if (BlasterCharacter)
-	{
-		FVector PlayerLocation = BlasterCharacter->GetActorLocation();
 
-		FItemInfo ItemInfo = BlasterCharacter->GetItemInfoFromTable(FName(Id));
+void UBackpackComponent::CreateItemAfterDiscard_Implementation(const FString& Id)
+{
+	if (!PlayerCharacter->HasAuthority())
+	{
+		return;
+	}
+	
+	if (PlayerCharacter)
+	{
+		FVector PlayerLocation = PlayerCharacter->GetActorLocation();
+
+		FItemInfo ItemInfo = PlayerCharacter->GetItemInfoFromTable(FName(Id));
 
 		if (ItemInfo.ItemClass != nullptr)
 		{
@@ -484,5 +533,36 @@ void UBackpackComponent::CreateItemAfterDiscard(FString Id)
 			}
 		}
 		
+	}
+}
+
+void UBackpackComponent::GetItemsByType(EItemType InItemType, TArray<FBackpackItemInfo>& InItems)
+{
+	for (auto Item : Items)
+	{
+		if (Item.ItemType == InItemType)
+		{
+			InItems.Add(Item);
+		}
+	}
+}
+
+void UBackpackComponent::AddNewItem(FBackpackItemInfo Item, int Index)
+{
+	int X = Item.OccupyCellXYLength.X;
+	int Y = Item.OccupyCellXYLength.Y;
+	Item.BackpackId = FString::Printf(TEXT("%d"), Index);
+	
+	for(int I=0; I < Y; I++)
+	{
+		int PlaceIndex = Index + Column * I;
+		
+		for(int J=0; J < X; J++)
+		{
+			int TempJ = FMath::Min(1, J);
+			PlaceIndex += TempJ;
+			
+			Items[PlaceIndex] = Item;
+		}
 	}
 }

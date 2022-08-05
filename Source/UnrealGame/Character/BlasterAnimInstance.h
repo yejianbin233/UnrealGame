@@ -59,80 +59,77 @@ protected:
 	void InitialReferences();
 
 	/*
-	 * @description: 更新移动状态
-	 * 
-	 * @author: yejianbin
-	 * @version: v1.0
-	 * @createTime: 2022年06月19日 星期日 09:06:02
-	 */
-	void UpdateMovementStates();
-
-	/*
-	 * @description: 更新移动属性
+	 * @description: 更新属性
 	 * 
 	 * @author: yejianbin
 	 * @version: v1.0
 	 * @createTime: 2022年06月19日 星期日 09:06:28
 	 */
-	void UpdateMovementProperties();
+	void UpdateProperties();
+
+	/*
+	 * @description: 更新状态
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年06月19日 星期日 09:06:28
+	 */
+	void UpdateState();
 
 private:
 
-	class AWeapon* EquippedWeapon;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "References", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "References", meta=(AllowPrivateAccess=true), DisplayName="玩家角色")
 	class ABlasterCharacter* BlasterCharacter;
 
 	// 是否在空中
-	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否在空中")
 	bool bIsInAir;
 
 	// 是否正在跳跃
-	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否跳跃中")
 	bool bIsJumping; 
 
 	// 是否正在加速
-	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category = "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否正在加速")
 	bool bIsAccelerating; 
 
-	// 是否装备武器
-	UPROPERTY(BlueprintReadOnly, Category = "Weapon States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
-	bool bIsWeaponEquipped;
-
 	// 是否正在蹲伏
-	UPROPERTY(BlueprintReadOnly, Category= "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category= "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否正在蹲伏中")
 	bool bIsCrouched;
 
 	// 是否正在瞄准
-	UPROPERTY(BlueprintReadOnly, Category= "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category= "Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否在瞄准")
 	bool bIsAiming;
 
 	// 是否死亡
-	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay)
+	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess=true), AdvancedDisplay, DisplayName="是否死亡")
 	bool bElimmed;
 
 	// 速度方向
-	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="速度方向")
 	EMovementDirection MovementDirection;
 
 	// 速度值
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="移动速度")
 	float Speed;
 
-	// 速度值
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	// 跳跃到降落地面的过渡值 - TODO
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="跳跃到降落地面的过渡值")
 	float JumpToGroundBlend;
 
 	// Walk / Jog 速度等级
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="行走/奔跑的速度等级")
 	float MovementSpeedLevel;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="瞄准偏移-Yaw")
 	float AO_YawOffset;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="瞄准偏移-Pitch")
 	float AO_PitchOffset;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadOnly, Category = "Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="瞄准偏移混合值")
 	float AO_Blend;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment", meta=(AllowPrivateAccess=true), DisplayName="玩家装备状态")
+	EPlayerEquipState PlayerEquipState;
 };

@@ -5,3 +5,19 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
+UENUM(BlueprintType)
+enum class EPlayerEquipState : uint8
+{
+	UnArmed UMETA(DisplayName="未装备"),
+	Rifle UMETA(DisplayName="步枪"),
+	Pistol UMETA(DisplayName="手枪"),
+	Sword UMETA(DisplayName="剑"),
+};
+
+UENUM(BlueprintType)
+enum class EPickableObjectState : uint8
+{
+	Default UMETA(DisplayName="默认"),
+	Pickup UMETA(DisplayName="拾取"),
+	Equip UMETA(DisplayName="装备"),
+};

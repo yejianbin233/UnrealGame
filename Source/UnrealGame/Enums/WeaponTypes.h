@@ -4,17 +4,17 @@
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
 {
-	EWT_AssaultRifle UMETA(DisplayName = "Gun"),
-	EWT_RocketLauncher UMETA(DisplayName = "Melee"),
-	EWT_Pistol UMETA(DisplayName = "Missile"),
+	LongRangeWeapon UMETA(DisplayName = "远程武器"),
+	MeleeWeapon UMETA(DisplayName = "近战武器"),
+	ThrowableWeapon UMETA(DisplayName = "可投掷武器"),
 };
 
 UENUM(BlueprintType)
-enum class EGunWeaponType : uint8
+enum class ELongRangeWeaponType : uint8
 {
 	Pistol UMETA(DisplayName = "Pistol"),
 	Rifle UMETA(DisplayName = "Rifle"),
-	Shotgun UMETA(DisplayName = "Rifle"),
+	Shotgun UMETA(DisplayName = "Shotgun"),
 	RocketLauncher UMETA(DisplayName = "Rocket Launcher"),
 };
 
@@ -28,8 +28,7 @@ enum class EMeleeWeaponType : uint8
 UENUM(BlueprintType)
 enum class ECombatState : uint8
 {
-	ECS_Unoccupied UMETA(DisplayName = "Unoccupied"),
-	ECS_Reloading UMETA(DisplayName = "Unoccupied"),
-	ECS_MAX UMETA(DisplayName = "DefaultMax"),
-
+	Idle UMETA(DisplayName = "Idle"),
+	Combat UMETA(DisplayName = "Combat"),
+	ECS_Reloading UMETA(DisplayName = "Reloading"),
 };

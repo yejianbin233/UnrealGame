@@ -13,6 +13,7 @@ enum class EItemType : uint8
 {
 	Weapon UMETA(DisplayName="武器"),
 	Consumables UMETA(DisplayName="消耗品"),
+	Projectile UMETA(DisplayName="子弹"),
 	Prop UMETA(DisplayName="道具")
 };
 

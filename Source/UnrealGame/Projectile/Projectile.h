@@ -34,6 +34,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Particle System", DisplayName="子弹击中声音效果")
 	class USoundCue* ImpactSound;
 
+	// TODO 子弹命中伤害
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="伤害值")
 	float Damage=20.0f;
 

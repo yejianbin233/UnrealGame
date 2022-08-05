@@ -5,6 +5,7 @@
 #include "BlasterCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "UnrealGame/Component/Combat/CombatComponent.h"
 #include "UnrealGame/Weapon/Weapon.h"
 
 void UBlasterAnimInstance::NativeInitializeAnimation()
@@ -28,9 +29,8 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		}
 	}
 
-	UpdateMovementProperties();
-	UpdateMovementStates();
-	
+	UpdateProperties();
+	UpdateState();
 }
 
 void UBlasterAnimInstance::InitialReferences()
@@ -38,26 +38,7 @@ void UBlasterAnimInstance::InitialReferences()
 	BlasterCharacter = Cast<ABlasterCharacter>(TryGetPawnOwner());
 }
 
-void UBlasterAnimInstance::UpdateMovementStates()
-{
-	bIsInAir = BlasterCharacter->IsInAir();
-
-	bIsJumping = BlasterCharacter->IsJumping();
-
-	bIsAccelerating = BlasterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.0f ? true : false;
-
-	bIsWeaponEquipped = BlasterCharacter->IsWeaponEquipped();
-	
-	EquippedWeapon = BlasterCharacter->GetEquippedWeapon();
-	
-	bIsCrouched = BlasterCharacter->bIsCrouched;
-
-	bIsAiming = BlasterCharacter->IsAiming();
-
-	bElimmed = BlasterCharacter->IsElimmed();
-}
-
-void UBlasterAnimInstance::UpdateMovementProperties()
+void UBlasterAnimInstance::UpdateProperties()
 {
 	MovementDirection = BlasterCharacter->GetMovementDirection();
 	
@@ -70,4 +51,21 @@ void UBlasterAnimInstance::UpdateMovementProperties()
 	AO_PitchOffset = BlasterCharacter->GetAO_PitchOffset();
 	
 	AO_Blend = BlasterCharacter->GetAO_Blend();
+}
+
+void UBlasterAnimInstance::UpdateState()
+{
+	PlayerEquipState = BlasterCharacter->GetCombatComponent()->GetPlayerEquipState();
+
+	bIsInAir = BlasterCharacter->IsInAir();
+
+	bIsJumping = BlasterCharacter->IsJumping();
+
+	bIsAccelerating = BlasterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.0f ? true : false;
+
+	bIsCrouched = BlasterCharacter->bIsCrouched;
+
+	bIsAiming = BlasterCharacter->IsAiming();
+
+	bElimmed = BlasterCharacter->IsElimmed();
 }

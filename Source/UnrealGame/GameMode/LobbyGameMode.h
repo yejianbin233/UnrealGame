@@ -14,5 +14,8 @@ class UNREALGAME_API ALobbyGameMode : public AGameMode
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, DisplayName="转换地图地址")
+	FString TravelUrl;
+	
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 };

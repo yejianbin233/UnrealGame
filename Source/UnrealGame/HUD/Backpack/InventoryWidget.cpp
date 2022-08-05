@@ -88,7 +88,7 @@ void UInventoryWidget::Refresh()
 
 		TArray<FPositionItem> PositionItems;
 		
-		BackpackComponent->GetAllItem(&PositionItems);
+		BackpackComponent->GetAllItem(PositionItems);
 
 		
 		for (int Index=0; Index < PositionItems.Num(); Index++)

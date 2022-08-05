@@ -3,15 +3,14 @@
 
 #include "Weapon.h"
 
-#include "Casing.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/Component/Collimation/CollimationComponent.h"
+#include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
+#include "UnrealGame/DataAsset/WeaponAsset.h"
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
 
 // Sets default values
@@ -29,7 +28,46 @@ AWeapon::AWeapon()
 	SetRootComponent(WeaponMeshComponent);
 }
 
-void AWeapon::Init()
+void AWeapon::Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayerController* InPlayerController)
 {
+	PlayerCharacter = InPlayerCharacter;
+	PlayerController = InPlayerController;
 	
+	UUnrealGameAssetManager* AssetManager = UUnrealGameAssetManager::Get();
+
+	UWeaponAsset* WeaponAsset = AssetManager->GetPrimaryAssetObject<UWeaponAsset>(AssetId);
+
+	if (!WeaponAsset)
+	{
+		AssetManager->ForceLoadItem(AssetId);
+		WeaponAsset = AssetManager->GetPrimaryAssetObject<UWeaponAsset>(AssetId);
+		if (!WeaponAsset)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Not Found Weapon Asset Data!"));
+			return;
+		}
+	}
+
+	WeaponMeshComponent->SetSkeletalMesh(WeaponAsset->WeaponMesh);
+	WeaponMeshComponent->SetAnimInstanceClass(WeaponAsset->AnimInstanceClass);
+	EquippedWeaponSocketName = WeaponAsset->EquippedWeaponSocketName;
+	EquippedMontage = WeaponAsset->EquippedMontage;
+	PlayerEquipState = WeaponAsset->PlayerEquipState;
+}
+
+void AWeapon::Equipment(bool Equipped)
+{
+	// do somethinig
+}
+
+void AWeapon::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+}
+
+void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWeapon, PlayerEquipState);
 }

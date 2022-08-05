@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "UnrealGame/Weapon/Casing.h"
+#include "Casing.h"
 
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
