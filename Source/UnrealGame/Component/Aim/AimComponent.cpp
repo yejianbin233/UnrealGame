@@ -56,13 +56,11 @@ void UAimComponent::AimStartedFOVInterp(float InterpValue)
 		return;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("AimStartedFOVInterp:: InterpValue is : %f"), InterpValue);
 	InterpValue = FMath::Clamp(InterpValue, 0, 1);
 
 	float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
 	float NextFOV = UKismetMathLibrary::Lerp(CurrentFOV, AimFOV, InterpValue);
 
-	UE_LOG(LogTemp, Warning, TEXT("AimStartedFOVInterp:: Current FOV is : %f"), NextFOV);
 	if (PlayerCharacter)
 	{
 		PlayerCharacter->GetFollowCamera()->SetFieldOfView(NextFOV);
@@ -76,7 +74,6 @@ void UAimComponent::AimEndedFOVInterp(float InterpValue)
 		return;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("AimEndedFOVInterp:: InterpValue is : %f"), InterpValue);
 	InterpValue = FMath::Clamp(InterpValue, 0, 1);
 
 	float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
@@ -84,7 +81,6 @@ void UAimComponent::AimEndedFOVInterp(float InterpValue)
 	
 	if (PlayerCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AimEndedFOVInterp:: Current FOV is : %f"), NextFOV);
 		PlayerCharacter->GetFollowCamera()->SetFieldOfView(NextFOV);
 	}
 }

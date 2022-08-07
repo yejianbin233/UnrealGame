@@ -5,6 +5,7 @@
 
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/GameState/BlasterGameState.h"
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
@@ -25,8 +26,6 @@ ABlasterGameMode::ABlasterGameMode()
 void ABlasterGameMode::BeginDestroy()
 {
 	Super::BeginDestroy();
-
-	LoadPrimaryDataAsset();
 }
 
 void ABlasterGameMode::BeginPlay()

@@ -5,11 +5,9 @@
 
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/WidgetComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/UnrealGame.h"
@@ -24,11 +22,11 @@
 #include "UnrealGame/Component/Combat/CombatComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackWidget.h"
-#include "UnrealGame/HUD/Backpack/ItemBase.h"
 #include "UnrealGame/InteractiveActor/InteractiveDoor.h"
 #include "DataRegistrySubsystem.h"
-#include "UnrealGame/DataAsset/ItemAsset.h"
+#include "GameFramework/GameStateBase.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
+#include "UnrealGame/GameState/BlasterGameState.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 
 void ABlasterCharacter::CurrentPickableActorInter()
@@ -93,6 +91,13 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
 	DOREPLIFETIME(ABlasterCharacter, PickableObjectData);
 	DOREPLIFETIME(ABlasterCharacter, bHasPickableObject);
+	DOREPLIFETIME(ABlasterCharacter, bIsJump);
+	DOREPLIFETIME(ABlasterCharacter, bElimmed);
+	DOREPLIFETIME(ABlasterCharacter, MovementDirection);
+	DOREPLIFETIME(ABlasterCharacter, MovementSpeedLevel);
+	DOREPLIFETIME(ABlasterCharacter, AO_YawOffset);
+	DOREPLIFETIME(ABlasterCharacter, AO_PitchOffset);
+	DOREPLIFETIME(ABlasterCharacter, AO_Blend);
 	
 }
 
@@ -103,7 +108,6 @@ void ABlasterCharacter::PostInitializeComponents()
 	if (GetCombatComponent())
 	{
 		GetCombatComponent()->PlayerCharacter = this;
-		GetCombatComponent()->PlayerController = Cast<ABlasterPlayerController>(GetController());
 	}
 }
 
@@ -405,7 +409,7 @@ void ABlasterCharacter::AimButtonPressed()
 	
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->Aim(true);
+		GetCombatComponent()->SC_Aim(true);
 	}
 }
 
@@ -413,47 +417,39 @@ void ABlasterCharacter::AimButtonReleased()
 {
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->Aim(false);
+		GetCombatComponent()->SC_Aim(false);
 	}
 }
 
 void ABlasterCharacter::FireButtonPressed()
 {
-
-	if (bDisableGameplay)
+	if (GetCombatComponent())
 	{
-		return;
+		GetCombatComponent()->SC_Fire();
 	}
-	
-	if (CombatCopmponent)
+}
+
+void ABlasterCharacter::FireHold()
+{
+	if (GetCombatComponent())
 	{
-		// Combat->FireButtonPressed(true);
+		GetCombatComponent()->SC_FireHold();
 	}
 }
 
 void ABlasterCharacter::FireButtonReleased()
 {
-	if (bDisableGameplay)
+	if (GetCombatComponent())
 	{
-		return;
-	}
-	
-	if (CombatCopmponent)
-	{
-		//Combat->FireButtonPressed(false);
+		GetCombatComponent()->SC_FireHoldStop();
 	}
 }
 
 void ABlasterCharacter::ReloadButtonPressed()
 {
-	if (bDisableGameplay)
+	if (GetCombatComponent())
 	{
-		return;
-	}
-	
-	if (CombatCopmponent)
-	{
-		//Combat->Reload();
+		GetCombatComponent()->SC_Reload();
 	}
 }
 
@@ -489,15 +485,6 @@ void ABlasterCharacter::Equipment()
 {
 	GetCombatComponent()->SC_Equipment();
 }
-
-// void ABlasterCharacter::SC_Equipment_Implementation()
-// {
-// 	if (!HasAuthority())
-// 	{
-// 		return;
-// 	}
-// 	
-// }
 
 void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 {
@@ -668,6 +655,11 @@ void ABlasterCharacter::UpdateMovementRotation()
 
 void ABlasterCharacter::UpdateAimOffset(float DeltaTime)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	if (MovementDirection == EMovementDirection::EMD_Idle)
 	{
 		AO_Blend = UKismetMathLibrary::FInterpTo(AO_Blend, 1, DeltaTime, AO_Blend_Speed);
@@ -998,8 +990,17 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Shoot)
 		{
-			// TODO 不需要 FireButtonReleased()
 			EInputComponent->BindAction(EIA_Shoot, ETriggerEvent::Triggered, this, &ThisClass::FireButtonPressed);
+		}
+
+		if (EIA_ShootHold)
+		{
+			EInputComponent->BindAction(EIA_ShootHold, ETriggerEvent::Triggered, this, &ThisClass::FireHold);
+		}
+
+		if (EIA_ShootButtonReleased)
+		{
+			EInputComponent->BindAction(EIA_ShootButtonReleased, ETriggerEvent::Triggered, this, &ThisClass::FireButtonReleased);
 		}
 
 		if (EIA_Sprint)
@@ -1029,7 +1030,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_ReloadAmmo)
 		{
-			// TODO 
+			EInputComponent->BindAction(EIA_ReloadAmmo, ETriggerEvent::Triggered, this, &ThisClass::ReloadButtonPressed);
 		}
 
 		if (EIA_UseSwitch)

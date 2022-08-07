@@ -31,13 +31,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Widget", DisplayName="准星UI控件")
 	class UCrosshairWidget* CrosshairWidget;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI | Crosshairs", DisplayName="准心扩大曲线资产")
-	UCurveFloat* CrosshairOffsetCurve;
-	
-	// 外部动态改变 Spread 值来影响准星的扩散
-	UPROPERTY(BlueprintReadOnly, Category="Collimation", DisplayName="瞄准扩散速度")
-	float Spread;
-
 protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category="CollimationType", DisplayName="瞄准准星类型")
@@ -53,9 +46,6 @@ public:
 	virtual void ShowCollimation() PURE_VIRTUAL(UCollimationSceneComponent::ShowCollimation);
 
 	virtual void HideCollimation() PURE_VIRTUAL(UCollimationSceneComponent::HideCollimation);
-
-	// 十字准星扩散
-	virtual void UpdateSpread(float InSpread) PURE_VIRTUAL(UCollimationSceneComponent::UpdateSpread, );
 
 protected:
 	// Called every frame

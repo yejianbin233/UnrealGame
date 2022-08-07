@@ -15,7 +15,7 @@ class UNREALGAME_API AProjectileWeapon : public ALongRangeWeapon
 	GENERATED_BODY()
 
 public:
-	virtual void Fire() override;
+	virtual void SC_Fire() override;
 	
 protected:
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "../Weapon.h"
+#include "Curves/CurveVector.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "LongRangeWeapon.generated.h"
 
@@ -30,7 +31,7 @@ public:
 	UAimComponent* AimComponent;
 
 	// 发射子弹效果
-	UPROPERTY(BlueprintReadWrite, Category="Ammo", DisplayName="子弹数据")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Ammo", DisplayName="子弹数据")
 	FProjectileData ProjectileData;
 
 	UPROPERTY(BlueprintReadWrite, Category="Fire", DisplayName="武器开火动画蒙太奇")
@@ -57,9 +58,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category="Fire", DisplayName="射击间隔")
 	float FireInterval;
 
-	UPROPERTY(BlueprintReadOnly, Category="Fire", DisplayName="连续开火过热曲线")
-	UCurveFloat* FireOverHeatCurve;
-
 	UPROPERTY(BlueprintReadOnly, Category="Fire", DisplayName="连续开火定时器")
 	FTimerHandle FireHoldTimerHandle;
 	
@@ -72,13 +70,63 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ammo", DisplayName="子弹最大填充量")
 	int32 MaxReloadAmmoAmount;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Ammo", DisplayName="子弹数据表")
+	UDataTable* ProjectileDataTable;
+
 private:
 	UPROPERTY(BlueprintReadWrite, Category="Fire", DisplayName="当前射击间隔", meta=(AllowPrivateAccess))
 	float CurrentFireInterval;
 
+	UPROPERTY(BlueprintReadWrite, Category="Fire", DisplayName="是否正在播放开火动画", meta=(AllowPrivateAccess))
+	bool bIsPlayCharacterFireAnimMontage;
+
+	UPROPERTY(BlueprintReadWrite, Category="Reload", DisplayName="是否正在播放填装子弹动画", meta=(AllowPrivateAccess))
+	bool bIsPlayWeaponReloadAnimMontage;
+
+	UPROPERTY(BlueprintReadWrite, Category="Ammo", DisplayName="是否正在播放缺少子弹动画", meta=(AllowPrivateAccess))
+	bool bIsPlayWeaponAmmoExhaustAnimMontage;
+	
 public:
 
 	ALongRangeWeapon();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void InitHandle(ABlasterCharacter* InPlayerCharacter);
+	
+	virtual void Equipment(bool Equipped) override;
+
+	UFUNCTION(Client, Reliable, Category="Equipment", DisplayName="装备处理")
+	void EquipmentHandle(bool Equipped);
+	
+	/* 射击功能 */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Fire", DisplayName="服务器开火")
+	virtual void SC_Fire();
+
+	UFUNCTION(Category="Fire", DisplayName="连续开火")
+	void HoldFire();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Fire", DisplayName="服务器连续开火")
+	virtual void SC_FireHold();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Fire", DisplayName="服务器暂停连续开火")
+	virtual void SC_FireHoldStop();
+	/* 射击功能 */
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Ammo", DisplayName="服务器装填")
+	virtual void SC_Reload();
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Ammo", DisplayName="多播装填")
+	virtual void Multicast_Reload();
+
+	// note 如果 PlayCharacterMontage 和 PlayWeaponMontage 一起调用，应先调用 PlayCharacterMontage
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Ammo", DisplayName="播放玩家角色蒙太奇动画")
+	void PlayCharacterMontage(UAnimMontage* AnimMontage);
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Ammo", DisplayName="播放武器蒙太奇动画")
+	void PlayWeaponMontage(UAnimMontage* AnimMontage);
+
+protected:
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 
@@ -86,27 +134,18 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	virtual void Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayerController* InPlayerController) override;
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹")
+	void SpawnProjectile();
 
-	virtual void Equipment(bool Equipped) override;
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹壳")
+	void SpawnCasing();
+
+private:
+
+	void PlayMontageStarted(UAnimMontage* AnimMontage);
 	
-	/* 射击功能 */
-	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="开火")
-	virtual void Fire();
-
-	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="连续开火")
-	virtual void FireHold();
-
-	virtual void FireButtonReleased();
-	/* 射击功能 */
-
-	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="装填")
-	virtual void Reload();
-
-protected:
-	virtual void SpawnAmmoProjectile();
-	virtual void SpawnCasing();
-
+	void PlayMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted);
+	
 public:
 	
 	FORCEINLINE int32 GetAmmo() const { return LoadAmmo; }
@@ -116,10 +155,4 @@ public:
 	bool IsAmmoEmpty();
 };
 
-inline void ALongRangeWeapon::BeginPlay()
-{
-	Super::BeginPlay();
 
-	GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::Fire, FireInterval);
-	GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
-}

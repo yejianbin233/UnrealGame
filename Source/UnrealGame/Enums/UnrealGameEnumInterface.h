@@ -21,3 +21,11 @@ enum class EPickableObjectState : uint8
 	Pickup UMETA(DisplayName="拾取"),
 	Equip UMETA(DisplayName="装备"),
 };
+
+UENUM(BlueprintType)
+enum class EWeaponPlay : uint8
+{
+	Fire UMETA(DisplayName="开火"),
+	Reload UMETA(DisplayName="装填子弹"),
+	Dry UMETA(DisplayName="缺少子弹"),
+};

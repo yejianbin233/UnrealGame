@@ -27,7 +27,6 @@ void UCollimationComponent::BeginPlay()
 	
 }
 
-
 // Called every frame
 void UCollimationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {

@@ -59,6 +59,11 @@ void UBackpackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_CONDITION(UBackpackComponent, Items, COND_OwnerOnly);
 }
 
+void UBackpackComponent::OnRep_Items()
+{
+	OnBackpackItemChanged.Broadcast();
+}
+
 void UBackpackComponent::Pickup_Implementation()
 {
 	if (!PlayerCharacter->HasAuthority())
@@ -527,8 +532,9 @@ void UBackpackComponent::CreateItemAfterDiscard_Implementation(const FString& Id
 		{
 			if (ItemInfo.ItemClass->GetClass() != nullptr)
 			{
-				AItemBase* Item = GetWorld()->SpawnActor<AItemBase>(ItemInfo.ItemClass, PlayerLocation, FRotator(0.f));
-
+				// AItemBase* Item = GetWorld()->SpawnActor<AItemBase>(ItemInfo.ItemClass, PlayerLocation, FRotator(0.f));
+				AItemBase* Item = Cast<AItemBase>(GetWorld()->SpawnActor(ItemInfo.ItemClass, &PlayerLocation));
+				
 				Item->Init(ItemInfo);
 			}
 		}

@@ -56,7 +56,7 @@ public:
 	FOnBackpackItemChanged OnBackpackItemChanged;
 	
 private:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Backpack Setting", DisplayName="背包物品", meta=(AllowPrivateAccess))
+	UPROPERTY(ReplicatedUsing="OnRep_Items", BlueprintReadWrite, Category="Backpack", DisplayName="背包存储的物品", meta=(AllowPrivateAccess))
 	TArray<FBackpackItemInfo> Items;
 	
 public:	
@@ -165,9 +165,11 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 private:
-	
+
+	UFUNCTION()
+	void OnRep_Items();
 	/*
 	 * @description:TryAddItem - 尝试添加物品，拾取物品时调用的背包添加物品方法
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构

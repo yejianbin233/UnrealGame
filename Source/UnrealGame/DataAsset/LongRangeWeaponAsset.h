@@ -45,6 +45,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fire", DisplayName="连续开火过热曲线")
 	UCurveFloat* FireOverHeatCurve;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fire", DisplayName="开火计数最大值")
+	float FireCountMax;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fire", DisplayName="开火计数最小值", meta=(UIMin=0))
+	float FireCountMin;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fire", DisplayName="过热恢复曲线")
+	UCurveFloat* OverHeatRecoverCurve;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Fire", DisplayName="过热恢复速率")
+	float RecoverInterval;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ammo", DisplayName="子弹最大填充量")
 	int32 MaxReloadAmmoAmount;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Ammo", DisplayName="子弹数据表格")
+	class UDataTable* ProjectDataTable;
 };

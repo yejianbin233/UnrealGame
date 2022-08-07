@@ -20,7 +20,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "DataAsset Property")
 	FPrimaryAssetType ItemType;
 
-	// 资产名称
+	// 资产名称 - 全局唯一，同类型武器的名称也是不同的
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "DataAsset Property")
 	FName ItemName;
 

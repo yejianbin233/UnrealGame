@@ -6,7 +6,7 @@
 #include "../../Projectile/Projectile.h"
 #include "Engine/SkeletalMeshSocket.h"
 
-void AProjectileWeapon::Fire()
+void AProjectileWeapon::SC_Fire()
 {
 	// Super::Fire(HitTarget);
 

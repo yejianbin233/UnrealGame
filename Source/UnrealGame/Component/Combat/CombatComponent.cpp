@@ -4,7 +4,6 @@
 #include "CombatComponent.h"
 
 #include "UnrealGame/Character/BlasterCharacter.h"
-#include "UnrealGame/PlayerController/BlasterPlayerController.h"
 #include "UnrealGame/Weapon/Weapon.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Net/UnrealNetwork.h"
@@ -21,7 +20,7 @@ UCombatComponent::UCombatComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
+	SetIsReplicated(true);
 	// ...
 }
 
@@ -30,7 +29,6 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UCombatComponent, PlayerCharacter);
-	DOREPLIFETIME(UCombatComponent, PlayerController);
 	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
 	DOREPLIFETIME(UCombatComponent, LongRangeWeapon);
 	DOREPLIFETIME(UCombatComponent, MeleeWeapon);
@@ -38,12 +36,30 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, bIsAiming);
 }
 
+// Called when the game starts
+void UCombatComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// 加载相关资产
+	LoadAsset();
+
+}
+
+
+// Called every frame
+void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+}
+
 void UCombatComponent::SC_Equipment_Implementation()
 {
-	if (!PlayerCharacter->HasAuthority())
-	{
-		return;
-	}
+	Equipment();
+}
+
+void UCombatComponent::Equipment()
+{
 	// 检测检测
 	PlayerCharacter->TracePickableObject(EPickableObjectState::Equip);
 
@@ -54,7 +70,7 @@ void UCombatComponent::SC_Equipment_Implementation()
 		return;
 	}
 	FString Id = Item->SceneItemInfo.Id;
-
+	
 	// 拾取
 	PlayerCharacter->GetBackpackComponent()->Pickup();
 
@@ -63,51 +79,49 @@ void UCombatComponent::SC_Equipment_Implementation()
 	if (PlayerCharacter->PickableObjectData.HandleState == EPickableObjectState::Pickup
 		&& PlayerCharacter->PickableObjectData.TargetState == EPickableObjectState::Equip)
 	{
-		
-		PlayerCharacter->GetCombatComponent()->Multicast_Equipment(FName(Id), PlayerCharacter);
+		FEquipmentInfo EquipmentInfo = PlayerCharacter->GetEquipmentActorClass(FName(Id));
 
+		FVector Location = PlayerCharacter->GetActorLocation();
+		AWeapon* EquipmentWeapon = Cast<AWeapon>(GetWorld()->SpawnActor(EquipmentInfo.EquipmentBase, &Location));
+
+		if (EquipmentWeapon)
+		{
+			EquipmentWeapon->Init(PlayerCharacter);
+
+			if (PlayerCharacter)
+			{
+				const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(EquipmentWeapon->GetEquippedWeaponSocket());
+
+				EquippedSocket->AttachActor(EquipmentWeapon, PlayerCharacter->GetMesh());
+
+				EquippedWeapon = EquipmentWeapon;
+
+				// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
+				PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(EquippedWeapon->EquippedMontage);
+			
+				EquippedWeapon->Equipment(true);
+			}
+		}
 		
 		PlayerCharacter->PickableObjectData.HandleState = EPickableObjectState::Default;
 		PlayerCharacter->PickableObjectData.TargetState = EPickableObjectState::Default;
 	}
 }
 
-void UCombatComponent::Multicast_Equipment_Implementation(FName Id, ABlasterCharacter* InPlayerCharacter)
+void UCombatComponent::C_Aim_Implementation(bool bToAim)
 {
-	// 初始化
-	FEquipmentInfo EquipmentInfo= PlayerCharacter->GetEquipmentActorClass(Id);
-
-	AWeapon* EquipmentWeapon = Cast<AWeapon>(GetWorld()->SpawnActor(EquipmentInfo.EquipmentBase));
-			
-	if (EquipmentWeapon)
-	{
-		EquipmentWeapon->Init(InPlayerCharacter, Cast<ABlasterPlayerController>(InPlayerCharacter->GetController()));
-	}
-	
-	if (PlayerCharacter)
-	{
-		const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(EquipmentWeapon->GetEquippedWeaponSocket());
-
-		EquippedSocket->AttachActor(EquipmentWeapon, PlayerCharacter->GetMesh());
-
-		EquippedWeapon = EquipmentWeapon;
-
-		PlayerCharacter->PlayAnimMontage(EquipmentWeapon->EquippedMontage);
-			
-		EquippedWeapon->Equipment(true);
-	}
+	Aim(bToAim);
 }
 
-
-// void UCombatComponent::Equipement_Implementation(AWeapon* WeaponToEquip)
-// {
-// 	
-// }
-
-void UCombatComponent::Aim_Implementation(bool bToAim)
+void UCombatComponent::SC_Aim_Implementation(bool bToAim)
 {
 	bIsAiming = bToAim;
 
+	C_Aim(bToAim);
+}
+
+void UCombatComponent::Aim(bool bToAim)
+{
 	if (EquippedWeapon == nullptr)
 	{
 		return;
@@ -125,19 +139,80 @@ void UCombatComponent::Aim_Implementation(bool bToAim)
 	}
 }
 
-void UCombatComponent::Fire_Implementation()
+void UCombatComponent::SC_Fire_Implementation()
 {
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
 	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SC_Fire();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
 }
 
-void UCombatComponent::FireHold_Implementation()
+void UCombatComponent::SC_FireHold_Implementation()
 {
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
 	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SC_FireHold();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
 }
 
-void UCombatComponent::Reload_Implementation()
+void UCombatComponent::SC_Reload_Implementation()
 {
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
 	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SC_Reload();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+}
+
+void UCombatComponent::SC_FireHoldStop_Implementation()
+{
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SC_FireHoldStop();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
 }
 
 EPlayerEquipState UCombatComponent::GetPlayerEquipState()
@@ -152,10 +227,23 @@ EPlayerEquipState UCombatComponent::GetPlayerEquipState()
 	}
 }
 
-void UCombatComponent::OnRep_EquippedWeapon(AWeapon* InEquippedWeapon)
+void UCombatComponent::OnRep_EquippedWeapon()
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnRep_EquippedWeapon"));
-	// Equippement(InEquippedWeapon);
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(EquippedWeapon->EquippedMontage);
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+	UE_LOG(LogTemp, Warning, TEXT("OnRep Equip Weapon"));
 }
 
 void UCombatComponent::LoadAsset()
@@ -166,25 +254,4 @@ void UCombatComponent::LoadAsset()
 	{
 		AssetManager->LoadPrimaryAssetsWithType(AssetType);
 	}
-}
-
-// Called when the game starts
-void UCombatComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	PlayerCharacter = Cast<ABlasterCharacter>(GetOwner());
-	PlayerController = Cast<ABlasterPlayerController>(PlayerCharacter->GetController());
-
-	// 加载相关资产
-	
-	LoadAsset();
-
-}
-
-
-// Called every frame
-void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }

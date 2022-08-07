@@ -8,11 +8,7 @@
 
 AProjectileBullet::AProjectileBullet()
 {
-	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-
-	ProjectileMovementComponent->bRotationFollowsVelocity = true;
-
-	ProjectileMovementComponent->SetIsReplicated(true);
+	
 }
 
 void AProjectileBullet::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,

@@ -4,6 +4,7 @@
 #include "Projectile.h"
 
 #include "Components/BoxComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 
@@ -20,6 +21,11 @@ AProjectile::AProjectile()
 	ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
 	ProjectileMeshComponent->SetupAttachment(RootComponent);
 	ProjectileMeshComponent->AddWorldTransform(DeltaTransform);
+
+	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+	ProjectileMovementComponent->bRotationFollowsVelocity = true;
+	ProjectileMovementComponent->SetIsReplicated(true);
+	
 }
 
 // Called when the game starts or when spawned
@@ -27,10 +33,10 @@ void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Tracer)
+	if (BulletTaillParticleSystem)
 	{
-		TracerComponent = UGameplayStatics::SpawnEmitterAttached(
-			Tracer
+		BulletTaillParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(
+			BulletTaillParticleSystem
 			, CollisionBox
 			, FName("")
 			, GetActorLocation()
@@ -62,14 +68,14 @@ void AProjectile::Destroyed()
 
 
 	// TODO 不应该在销毁时生成粒子效果，可能存在其他消亡条件，其他条件下消亡执行的逻辑应是不一样的
-	if (ImpactParticles)
+	if (BulletImpactParticleSystem)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, GetActorTransform());
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BulletImpactParticleSystem, GetActorTransform());
 	}
 
-	if (ImpactSound)
+	if (BulletImpactSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ImpactSound, GetActorLocation());
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), BulletImpactSound, GetActorLocation());
 	}
 
 }

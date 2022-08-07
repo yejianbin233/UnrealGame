@@ -4,10 +4,16 @@
 #include "LongRangeWeapon.h"
 
 #include "../../Casing/Casing.h"
+#include "Camera/CameraComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/Component/Aim/AimComponent.h"
 #include "UnrealGame/Component/Collimation/CollimationComponent.h"
+#include "UnrealGame/Component/Collimation/CrosshairComponent.h"
 #include "UnrealGame/DataAsset/LongRangeWeaponAsset.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
 #include "UnrealGame/HUD/Backpack/BackpackComponent.h"
@@ -18,14 +24,19 @@ ALongRangeWeapon::ALongRangeWeapon()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-bool ALongRangeWeapon::IsAmmoEmpty()
+void ALongRangeWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	return LoadAmmo <= 0;
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
 void ALongRangeWeapon::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
+}
+
+void ALongRangeWeapon::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 void ALongRangeWeapon::Tick(float DeltaSeconds)
@@ -36,10 +47,10 @@ void ALongRangeWeapon::Tick(float DeltaSeconds)
 	CurrentFireInterval = FMath::Clamp(CurrentFireInterval, 0, FireInterval);
 }
 
-void ALongRangeWeapon::Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayerController* InPlayerController)
+void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 {
-	Super::Init(InPlayerCharacter, InPlayerController);
-
+	Super::InitHandle(InPlayerCharacter);
+	
 	if (CollimationComponentClass)
 	{
 		CollimationComponent = NewObject<UCollimationComponent>(this, CollimationComponentClass);
@@ -55,12 +66,9 @@ void ALongRangeWeapon::Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayer
 		if (!CollimationComponent)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("CollimationComponent Create Fail!"));
-		} else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CollimationComponent: %s"), *CollimationComponent->GetName());
 		}
 	}
-
+	
 	if (AimComponentClass)
 	{
 		AimComponent = NewObject<UAimComponent>(GetPlayerCharacter(), AimComponentClass);
@@ -74,9 +82,6 @@ void ALongRangeWeapon::Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayer
 		if (!AimComponent)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("CollimationComponent Create Fail!"));
-		} else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CollimationComponent: %s"), *CollimationComponent->GetName());
 		}
 	}
 
@@ -102,14 +107,32 @@ void ALongRangeWeapon::Init(ABlasterCharacter* InPlayerCharacter, ABlasterPlayer
 	WeaponAmmoExhaustAnimMontage = LongRangeWeaponAsset->WeaponAmmoExhaustAnimMontage;
 	FireProjectileSocketName = LongRangeWeaponAsset->FireProjectileSocketName;
 	FireInterval = LongRangeWeaponAsset->FireInterval;
-	FireOverHeatCurve = LongRangeWeaponAsset->FireOverHeatCurve;
 	MaxReloadAmmoAmount = LongRangeWeaponAsset->MaxReloadAmmoAmount;
+	ProjectileDataTable = LongRangeWeaponAsset->ProjectDataTable;
+
+	// note: 需要 FireInterval 初始化后才能设置自动连续开火的定时器
+	if (HasAuthority())
+	{
+		GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::HoldFire, FireInterval, true);
+		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
+
+	}
 }
 
 void ALongRangeWeapon::Equipment(bool Equipped)
 {
 	Super::Equipment(Equipped);
 
+	EquipmentHandle(Equipped);
+}
+
+void ALongRangeWeapon::HoldFire()
+{
+	SC_Fire();
+}
+
+void ALongRangeWeapon::EquipmentHandle_Implementation(bool Equipped)
+{
 	if (Equipped)
 	{
 		CollimationComponent->ShowCollimation();
@@ -120,66 +143,73 @@ void ALongRangeWeapon::Equipment(bool Equipped)
 	}
 }
 
-void ALongRangeWeapon::Fire()
+void ALongRangeWeapon::SC_Fire_Implementation()
 {
 	if (CurrentFireInterval > 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
 		return;
 	}
+
 	if (IsAmmoEmpty())
 	{
 		// 当手动开火时，如果没有子弹，将播放动画
-		GetPlayerCharacter()->GetMesh()->PlayAnimation(WeaponAmmoExhaustAnimMontage, false);
-		
+		PlayCharacterMontage(WeaponAmmoExhaustAnimMontage);
 		return;
 	}
 	
 	if (CharacterFireAnimMontage)
 	{
-		GetPlayerCharacter()->GetMesh()->PlayAnimation(CharacterFireAnimMontage, false);
+		PlayCharacterMontage(CharacterFireAnimMontage);
 	}
 
 	if (WeaponFireAnimMontage)
 	{
-		WeaponMeshComponent->PlayAnimation(WeaponFireAnimMontage, false);
+		PlayWeaponMontage(WeaponFireAnimMontage);
 	}
 
-	SpawnAmmoProjectile();
-
-	// TODO 
-	SpawnCasing();
-
-	LoadAmmo--;
-}
-
-void ALongRangeWeapon::FireHold()
-{
-	// 使用定时器，保持射击
-	GetWorld()->GetTimerManager().UnPauseTimer(FireHoldTimerHandle);
-}
-
-void ALongRangeWeapon::FireButtonReleased()
-{
-	GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
-}
-
-void ALongRangeWeapon::Reload()
-{
-	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
-
-	TArray<FBackpackItemInfo> ProjectileItems;
-	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
-
-	if (ProjectileItems.Num() == 0)
+	if (bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
 	{
+		// 根据播放的蒙太奇来判断是否继续执行"开火"
 		return;
 	}
-
 	
+	SpawnProjectile();
+
+	SpawnCasing();
+
+	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
+	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
+	{
+		UCrosshairComponent* TempCrosshairComponent = Cast<UCrosshairComponent>(CollimationComponent);
+		if (TempCrosshairComponent)
+		{
+			TempCrosshairComponent->C_AddFireCount();
+		}
+	}
+	
+
+	LoadAmmo--;
+	UE_LOG(LogTemp, Warning, TEXT("%d"), LoadAmmo);
+
+	CurrentFireInterval = FireInterval;
 }
 
-void ALongRangeWeapon::SpawnAmmoProjectile()
+void ALongRangeWeapon::SC_FireHold_Implementation()
+{
+	// 使用定时器，保持射击
+	if (GetWorld()->GetTimerManager().IsTimerPaused(FireHoldTimerHandle))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UnPauseTimer"));
+		GetWorld()->GetTimerManager().UnPauseTimer(FireHoldTimerHandle);
+	} else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Active"));
+	}
+}
+
+void ALongRangeWeapon::SpawnProjectile()
 {
 	if (ProjectileData.ProjectileClass)
 	{
@@ -188,7 +218,7 @@ void ALongRangeWeapon::SpawnAmmoProjectile()
 		if (ProjectileSocket)
 		{
 			FTransform SocketTransform = ProjectileSocket->GetSocketTransform(WeaponMeshComponent);
-
+			
 			FActorSpawnParameters SpawnParameters;
 			SpawnParameters.Owner = PlayerCharacter;
 			SpawnParameters.Instigator = PlayerCharacter;
@@ -199,7 +229,7 @@ void ALongRangeWeapon::SpawnAmmoProjectile()
 				World->SpawnActor<AProjectile>(
 					ProjectileData.ProjectileClass
 					, SocketTransform.GetLocation()
-					, SocketTransform.GetRotation().Rotator()
+					, PlayerCharacter->GetCameraBoom()->GetTargetRotation()
 					, SpawnParameters
 				);
 			}
@@ -230,3 +260,188 @@ void ALongRangeWeapon::SpawnCasing()
 	}
 }
 
+void ALongRangeWeapon::PlayMontageStarted(UAnimMontage* AnimMontage)
+{
+	// 以玩家角色播放的动画为主
+	if (AnimMontage == CharacterFireAnimMontage)
+	{
+		bIsPlayCharacterFireAnimMontage = true;
+	}
+	else if (AnimMontage == CharacterReloadAnimMontage)
+	{
+		bIsPlayWeaponReloadAnimMontage = true;
+	}
+	else if (AnimMontage == WeaponAmmoExhaustAnimMontage)
+	{
+		bIsPlayWeaponAmmoExhaustAnimMontage = true;
+	}
+}
+
+void ALongRangeWeapon::PlayMontageEnded(UAnimMontage* AnimMontage, bool bInterrupted)
+{
+	if (AnimMontage == CharacterFireAnimMontage)
+	{
+		bIsPlayCharacterFireAnimMontage = false;
+	}
+	else if (AnimMontage == CharacterReloadAnimMontage)
+	{
+		bIsPlayWeaponReloadAnimMontage = false;
+	}
+	else if (AnimMontage == WeaponAmmoExhaustAnimMontage)
+	{
+		bIsPlayWeaponAmmoExhaustAnimMontage = false;
+	}
+}
+
+void ALongRangeWeapon::SC_FireHoldStop_Implementation()
+{
+	if (GetWorld()->GetTimerManager().IsTimerActive(FireHoldTimerHandle))
+	{
+		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
+	}
+}
+
+void ALongRangeWeapon::SC_Reload_Implementation()
+{
+	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
+
+	TArray<FBackpackItemInfo> ProjectileItems;
+	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
+
+	if (ProjectileItems.Num() == 0)
+	{
+		return;
+	}
+
+	Multicast_Reload();
+	
+	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
+
+	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	
+	for (auto ProjectileItem : ProjectileItems)
+	{
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		TempMaxReloadAmmoAmount -= CurReloadNum;
+		ProjectileItem.Num -= CurReloadNum;
+
+		// 更新背包子弹剩余数量
+		PlayerCharacter->GetBackpackComponent()->UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
+		
+		if (TempMaxReloadAmmoAmount)
+		{
+			break;
+		}
+	}
+
+	if (ProjectileDataTable)
+	{
+		FString ContentString;
+		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
+		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
+		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
+	}
+	
+	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
+}
+
+void ALongRangeWeapon::Multicast_Reload_Implementation()
+{
+	PlayCharacterMontage(CharacterReloadAnimMontage);
+	PlayWeaponMontage(WeaponReloadAnimMontage);
+}
+
+bool ALongRangeWeapon::IsAmmoEmpty()
+{
+	return LoadAmmo <= 0;
+}
+
+void ALongRangeWeapon::PlayCharacterMontage_Implementation(UAnimMontage* AnimMontage)
+{
+	if (AnimMontage == CharacterFireAnimMontage)
+	{
+		if (bIsPlayCharacterFireAnimMontage
+			|| bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
+		{
+			return;
+		}
+	}
+	else if (AnimMontage == CharacterReloadAnimMontage)
+	{
+		if (bIsPlayWeaponReloadAnimMontage)
+		{
+			return;
+		}
+	}
+	else if (AnimMontage == WeaponAmmoExhaustAnimMontage)
+	{
+		if (bIsPlayWeaponAmmoExhaustAnimMontage)
+		{
+			return;
+		}
+	}
+	
+	if (PlayerCharacter)
+	{
+		USkeletalMeshComponent* SkeletalMeshComponent = PlayerCharacter->GetMesh();
+		if (SkeletalMeshComponent)
+		{
+			UAnimInstance* AnimInstance = SkeletalMeshComponent->GetAnimInstance();
+			if (AnimInstance)
+			{
+				float PlayResult = AnimInstance->Montage_Play(AnimMontage);
+				if (PlayResult != 0)
+				{
+					PlayMontageStarted(AnimMontage);
+					FOnMontageEnded BlendingOutDelegate = FOnMontageEnded::CreateUObject(this, &ThisClass::PlayMontageEnded);
+					AnimInstance->Montage_SetEndDelegate(BlendingOutDelegate, AnimMontage);
+				}
+			}
+		}
+	}
+}
+
+void ALongRangeWeapon::PlayWeaponMontage_Implementation(UAnimMontage* AnimMontage)
+{
+	if (AnimMontage == CharacterFireAnimMontage)
+	{
+		if (bIsPlayCharacterFireAnimMontage
+			|| bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
+		{
+			return;
+		}
+	}
+	else if (AnimMontage == CharacterReloadAnimMontage)
+	{
+		if (bIsPlayWeaponReloadAnimMontage)
+		{
+			return;
+		}
+	}
+	else if (AnimMontage == WeaponAmmoExhaustAnimMontage)
+	{
+		if (bIsPlayWeaponAmmoExhaustAnimMontage)
+		{
+			return;
+		}
+	}
+	
+	USkeletalMeshComponent* SkeletalMeshComponent = GetWeaponMeshComponent();
+	if (SkeletalMeshComponent)
+	{
+		UAnimInstance* AnimInstance = SkeletalMeshComponent->GetAnimInstance();
+		if (AnimInstance)
+		{
+			float PlayResult = AnimInstance->Montage_Play(AnimMontage);
+			if (PlayResult != 0)
+			{
+				PlayMontageStarted(AnimMontage);
+				FOnMontageEnded BlendingOutDelegate = FOnMontageEnded::CreateUObject(this, &ThisClass::PlayMontageEnded);
+				AnimInstance->Montage_SetEndDelegate(BlendingOutDelegate, AnimMontage);
+			}
+		}
+	}
+}

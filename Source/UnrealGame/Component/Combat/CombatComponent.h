@@ -6,7 +6,6 @@
 #include "Components/ActorComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/HUD/BlasterHUD.h"
-#include "UnrealGame/Enums/WeaponTypes.h"
 #include "CombatComponent.generated.h"
 
 
@@ -39,10 +38,7 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category="Reference", DisplayName="玩家角色")
 	class ABlasterCharacter* PlayerCharacter;
 
-	UPROPERTY(Replicated, BlueprintReadWrite, Category="Reference", DisplayName="玩家控制器")
-	class ABlasterPlayerController* PlayerController;
-
-	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon, BlueprintReadWrite, Category="Weapon", DisplayName="当前装备使用中的武器")
+	UPROPERTY(ReplicatedUsing = "OnRep_EquippedWeapon", BlueprintReadWrite, Category="Weapon", DisplayName="当前装备使用中的武器")
 	class AWeapon* EquippedWeapon;
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category="Weapon", DisplayName="远程武器")
@@ -74,27 +70,32 @@ public:
 	
 	// 声明友类，友类可访问类的所有变量和函数(受保护、私有的)
 
-	// 装备武器
-	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Weapon", DisplayName="多播装备")
-	void Multicast_Equipment(FName Id, ABlasterCharacter* InPlayerCharacter);
-
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器装备")
 	void SC_Equipment();
 
-	// UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon", DisplayName="装备")
-	// virtual void Equipement(AWeapon* WeaponToEquip);
+	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="装备")
+	void Equipment();
 
-	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="瞄准")
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="服务器瞄准")
+	void SC_Aim(bool bToAim);
+	
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端瞄准")
+	void C_Aim(bool bToAim);
+
+	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="客户端瞄准")
 	void Aim(bool bToAim);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="开火")
-	void Fire();
+	void SC_Fire();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="连续开火")
-	void FireHold();
+	void SC_FireHold();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="连续开火停止")
+	void SC_FireHoldStop();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="装填")
-	void Reload();
+	void SC_Reload();
 	
 	// void FireButtonPressed(bool bPressed);
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="获取玩家装备状态")
@@ -106,7 +107,7 @@ protected:
 private:
 
 	UFUNCTION()
-	void OnRep_EquippedWeapon(AWeapon* InEquippedWeapon);
+	void OnRep_EquippedWeapon();
 
 	void LoadAsset();
 	

@@ -46,7 +46,7 @@ void AItemBase::Init(FItemInfo ItemInfo)
 				SkeletalMeshComponent->RegisterComponent();
 
 				// 组件绑定，使组件附加到跟组件(即 Actor)上，与在构造函数中调用的不同
-				SkeletalMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				SkeletalMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
 				SkeletalMeshComponent->AddWorldTransform(DeltaTransform);
 				
 				SkeletalMeshComponent->SetSkeletalMesh(ItemInfo.SkeletalMesh);
@@ -63,7 +63,8 @@ void AItemBase::Init(FItemInfo ItemInfo)
 				StaticMeshComponent->RegisterComponent();
 
 				// 组件绑定，使组件附加到跟组件(即 Actor)上，与在构造函数中调用的不同
-				StaticMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				StaticMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::SnapToTargetIncludingScale);
+				
 				StaticMeshComponent->AddWorldTransform(DeltaTransform);
 				
 				StaticMeshComponent->SetStaticMesh(ItemInfo.StaticMesh);

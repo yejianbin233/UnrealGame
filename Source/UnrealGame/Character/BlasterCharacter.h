@@ -55,6 +55,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="射击")
 	TObjectPtr<class UInputAction> EIA_Shoot;
 
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="连续射击")
+	TObjectPtr<class UInputAction> EIA_ShootHold;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="射击停止")
+	TObjectPtr<class UInputAction> EIA_ShootButtonReleased;
+
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="瞄准")
 	TObjectPtr<UInputAction> EIA_Aim;
 
@@ -172,6 +178,7 @@ private:
 	float Health = 100.0f;
 
 	// 是否死亡
+	UPROPERTY(Replicated, VisibleAnywhere, Category="Elimmed", DisplayName="是否被淘汰")
 	bool bElimmed = false;
 	
 	FTimerHandle ElimTimer;
@@ -226,10 +233,10 @@ private:
 	bool bDisableGameplay = false;
 
 	// 玩家速度方向
-	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="速度移动方向")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="速度移动方向")
 	EMovementDirection MovementDirection;
 
-	UPROPERTY(BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="是否跳跃中")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="是否跳跃中")
 	bool bIsJump;
 
 	UPROPERTY(BlueprintReadWrite, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="跳跃到地面的过渡混合值")
@@ -244,7 +251,7 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="加速移动速度")
 	float SprintSpeed=650.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float MovementSpeedLevel;
 
 	// 最大向上仰视角度 0-180
@@ -255,13 +262,13 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="最大向下俯视角度 0-180")
 	float MaxLowPitch = 60;
 
-	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float AO_PitchOffset;
 
-	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float AO_YawOffset;
 
-	UPROPERTY(BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
 	float AO_Blend;
 
 	UPROPERTY(EditAnywhere, Category="Movement Properties", meta=(AllowPrivateAccess))
@@ -396,6 +403,9 @@ protected:
 
 	// 开火
 	void FireButtonPressed();
+	
+	// 连续开火
+	void FireHold();
 
 	// 取消开火
 	void FireButtonReleased();
@@ -545,6 +555,7 @@ public:
 	FVector GetHitTarget() const;
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	/* Character Properties*/
 	
@@ -557,4 +568,41 @@ public:
 	FORCEINLINE float GetDisableGameplay() const { return bDisableGameplay; }
 
 	FORCEINLINE UBackpackComponent* GetBackpackComponent() const { return BackpackComponent; };
+
+	FORCEINLINE static void DisplayRole(ENetRole Role)
+	{
+		switch (Role)
+		{
+			case ROLE_Authority:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_Authority"));
+					break;
+				}
+			case ROLE_AutonomousProxy:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_AutonomousProxy"));
+					break;
+				}
+			case ROLE_SimulatedProxy:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_SimulatedProxy"));
+					break;
+				}
+			case ROLE_None:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_None"));
+					break;
+				}
+			case ROLE_MAX:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_MAX"));
+					break;
+				}
+			default:
+			{
+					UE_LOG(LogTemp, Warning, TEXT("Default Role Output"));
+					break;
+			}
+		}
+	}
 };

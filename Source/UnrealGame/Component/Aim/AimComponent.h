@@ -67,5 +67,5 @@ protected:
 	void CameraAim(bool bToAim);
 
 	// 瞄准的控件处理
-	virtual void WidgetAim(bool bToAim) PURE_VIRTUAL(UAimComponent::CameraAim);
+	virtual void WidgetAim(bool bToAim) PURE_VIRTUAL(UAimComponent::WidgetAim);
 };
