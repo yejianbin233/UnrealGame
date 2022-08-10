@@ -7,7 +7,9 @@
 #include "Components/ActorComponent.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "BackpackComponent.generated.h"
-
+/*
+ * FPositionItem - 背包物品位置
+ */
 USTRUCT(BlueprintType)
 struct FPositionItem
 {
@@ -18,7 +20,10 @@ struct FPositionItem
 	FBackpackItemInfo* Item;
 };
 
+/* FOnBackpackItemChanged - 背包物品改变委托 */
 DECLARE_EVENT(UBackpackComponent, FOnBackpackItemChanged)
+
+DECLARE_EVENT_OneParam(UBackpackComponent, FOnServerPickupItemFailture, AItemBase*)
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), BlueprintType )
 class UNREALGAME_API UBackpackComponent : public UActorComponent
@@ -50,13 +55,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Backpack Setting", DisplayName="背包单元格大小", meta=(AllowPrivateAccess))
 	float CellSize;
 
-	
-
 	// 背包数据改变时事件，通知 UI 更新
 	FOnBackpackItemChanged OnBackpackItemChanged;
+
+	FOnServerPickupItemFailture OnPickupItemFailture;
+
+	FOnClientBackpackItemChanged OnClientBackpackItemChanged;
+	
+	FOnServerReportBackpackItemChanged OnServerReportBackpackItemChanged;
 	
 private:
-	UPROPERTY(ReplicatedUsing="OnRep_Items", BlueprintReadWrite, Category="Backpack", DisplayName="背包存储的物品", meta=(AllowPrivateAccess))
+	UPROPERTY(BlueprintReadWrite, Category="Backpack", DisplayName="背包存储的物品", meta=(AllowPrivateAccess))
 	TArray<FBackpackItemInfo> Items;
 	
 public:	
@@ -73,9 +82,17 @@ public:
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="BackpackWidget", DisplayName="打开或关闭背包控件")
 	void OpenOrCloseBackpack();
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Backpack", DisplayName="拾取")
-	void Pickup();
+	UFUNCTION(BlueprintCallable, Category="Backpack", DisplayName="客户端拾取")
+	EPickupResult Pickup(AItemBase* PickItem);
+	
+	// UFUNCTION(Client, Reliable, BlueprintCallable, Category="Backpack", DisplayName="客户端拾取")
+	// void CC_Pickup(AItemBase* PickItem);
 
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Pickup", DisplayName="服务器拾取")
+	void SC_Pickup(AItemBase* PickItem, float BackpackItemChangedTime);
+
+	UFUNCTION(BlueprintCallable, Category="Pickup", DisplayName="服务器作为客户端拾取")
+	void SNC_Pickup(AItemBase* PickItem);
 	/*
 	 * @description: TryInsertItem - 尝试插入物品到背包指定位置，拖动物品控件时调用的背包放置物品方法（因为在拖动时会删除背包中的物品，因此是指定添加）
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构
@@ -88,7 +105,7 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 19:07:33
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="尝试插入物品")
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="尝试插入物品")
 	void TryInsertItem(FBackpackItemInfo Item, int Index);
 	/*
 	 * @description: GetAllItem - 获取背包所有物品数据
@@ -120,8 +137,15 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:22
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="尝试移除背包物品")
-	void UpdateItemNum(const FString& BackpackId, int Num);
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端根据背包Id更新物品数量")
+	void CC_UpdateItemNum(const FString& BackpackId, int Num);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器根据背包Id更新物品数量")
+	void SC_UpdateItemNum(const FString& BackpackId, int Num, float ClientUpdateTime);
+
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="客户端作为服务器根据背包Id更新物品数量")
+	void SNC_UpdateItemNum(const FString& BackpackId, int Num);
+	
 	/*
 	 * @description: TryRemoveItem - 尝试移除背包物品
 	 * @param BackpackId - 物品在背包中的唯一 Id，同等于数组在背包数组中的下标索引
@@ -130,9 +154,14 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:41
 	 */
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="尝试移除背包物品")
-	void TryRemoveItem(const FString& BackpackId);
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="服务器作为客户端尝试移除背包物品")
+	void SNC_TryRemoveItem(const FString& BackpackId);
 
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端尝试移除背包物品")
+	void CC_TryRemoveItem(const FString& BackpackId);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器端尝试移除背包物品")
+	void SC_TryRemoveItem(const FString& BackpackId, float RemoveTime);
 	/*
 	 * @description: CreateItemAfterDiscard - 在丢弃背包物品时，在场景中生成物品 Actor
 	 * @param FString - 物品的 Id
@@ -142,9 +171,14 @@ public:
 	 * @createTime: 2022年07月08日 星期五 20:07:07
 	 */
 	// TODO - 在客户端调用生成的物品尺寸会变小。
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="丢弃物品后在场景中生成物品")
-	void CreateItemAfterDiscard(const FString& Id);
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端丢弃物品后在场景中生成物品")
+	void CC_CreateItemAfterDiscard(const FString& Id);
 
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器创建丢弃后在场景中生成的物品")
+	void SC_CreateItemAfterDiscard(const FString& Id, FName ItemClientName);
+
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="服务器作为客户端创建丢弃后在场景中生成的物品")
+	void SNC_CreateItemAfterDiscard(const FString& Id);
 	/*
 	 * @description: GetItemsByType - 根据物品类型获取物品
 	 * @param InItemType 物品类型 
@@ -157,6 +191,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="根据物品类型获取物品")
 	void GetItemsByType(EItemType InItemType, TArray<FBackpackItemInfo>& InItems);
 
+	UFUNCTION(Category="Backpack", DisplayName="服务器背包数据覆盖客户端背包数据")
+	void ServerReportBackpackDataOverride(const TArray<FBackpackItemInfo>& ServerBackpackItems);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -167,9 +204,6 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
-
-	UFUNCTION()
-	void OnRep_Items();
 	/*
 	 * @description:TryAddItem - 尝试添加物品，拾取物品时调用的背包添加物品方法
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构
@@ -236,7 +270,6 @@ private:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:20
 	 */
-	// UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="格子坐标与数组索引之间的相互转换")
 	void CoordinateConvert(int* Index, FVector2D* Position, bool* bToIndex);
 
 	/*
@@ -251,7 +284,6 @@ private:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:20
 	 */
-	// UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="背包屏幕本地坐标转换为格子坐标")
 	void PackpackCoordinateConvert(FVector2D BackpackWidgetLocalPosition, FVector2D& Position);
 
 	/*
@@ -319,5 +351,7 @@ private:
 public:
 
 	FORCEINLINE UBackpackWidget* GetBackpackWidget() const { return BackpackWidget;};
+
+	FORCEINLINE TArray<FBackpackItemInfo> GetBackpackItemDatas(){ return Items; };
 };
 

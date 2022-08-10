@@ -70,11 +70,14 @@ public:
 	
 	// 声明友类，友类可访问类的所有变量和函数(受保护、私有的)
 
+	// note：不设计客户端可拾取物品
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器装备")
-	void SC_Equipment();
+	void SC_Equipment(class AItemBase* EquipItem, float EquipTime);
 
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="装备")
-	void Equipment();
+	void SNC_Equipment(AItemBase* Item);
+
+	void SNC_UnEquipment();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="服务器瞄准")
 	void SC_Aim(bool bToAim);
@@ -85,17 +88,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="客户端瞄准")
 	void Aim(bool bToAim);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="开火")
-	void SC_Fire();
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端开火")
+	void CC_Fire();
+	
+	// UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="服务器开火")
+	// void SC_Fire(float ClientFireTime);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="连续开火")
-	void SC_FireHold();
+	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端开火")
+	void SNC_Fire();
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="连续开火停止")
-	void SC_FireHoldStop();
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端连续开火")
+	void CC_FireHold();
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="装填")
-	void SC_Reload();
+	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端连续开火")
+	void SNC_FireHold();
+
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端连续开火停止")
+	void CC_FireHoldStop();
+	
+	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端连续开火停止")
+	void SNC_FireHoldStop();
+
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端装填子弹")
+	void CC_Reload();
+
+	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端装填子弹")
+	void SNC_Reload();
 	
 	// void FireButtonPressed(bool bPressed);
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="获取玩家装备状态")

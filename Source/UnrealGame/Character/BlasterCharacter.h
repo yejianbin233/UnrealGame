@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "BlasterAnimInstance.h"
+#include "InputActionValue.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "UnrealGame/Backpack/BackpackLagCompensationComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/Enums/WeaponTypes.h"
-#include "UnrealGame/HUD/Backpack/ItemInfoObject.h"
+#include "UnrealGame/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Interfaces/InteractWithCrosshairsInterface.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "BlasterCharacter.generated.h"
 
-
-struct FInputActionValue;
 
 /*
  * FVelocityBlend 根据速度来判断方向混合量
@@ -116,11 +116,14 @@ public:
 	TObjectPtr<UInputAction> EIA_Interactive;
 	/* Enhanced Input  */
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
+	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
 	bool bHasPickableObject;
 
 	UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取物品数据")
 	FPickupObjectData PickableObjectData;
+
+	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取的物品数组")
+	TArray<AItemBase*> PickableObjects;
 	
 private:
 
@@ -141,6 +144,9 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包组件", meta=(AllowPrivateAccess=true))
 	class UBackpackComponent* BackpackComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包滞后补偿组件", meta=(AllowPrivateAccess=true))
+	class UBackpackLagCompensationComponent* BackpackLagCompensationComponent;
 
 	// TODO - 武器，和战斗组件
 	// 武器
@@ -347,13 +353,13 @@ public:
 	 * @createTime: 2022年07月08日 星期五 19:07:52
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
-	FItemInfo GetItemInfoFromTable(FName Id);
+	struct FItemInfo GetItemInfoFromTable(FName Id);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Interactive", DisplayName="交互")
 	void Interactive();
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Pickup", DisplayName="检测可拾取对象")
-	void TracePickableObject(EPickableObjectState PickableObjectState);
+	UFUNCTION(BlueprintCallable, Category="Pickup", DisplayName="检测可拾取对象")
+	AItemBase* TracePickableObject(EPickableObjectState PickableObjectState);
 
 	// TODO 检测到可拾取物体时，高亮显示
 	void HighLightPickableObject();
@@ -425,13 +431,19 @@ protected:
 	void RotateDragItemWidget();
 
 	/*
-	 * @description: Pickup 拾取
+	 * @description: Pickup 拾取 - 客户端拾取
 	 * 
 	 * @author: yejianbin
 	 * @version: v1.0
 	 * @createTime: 2022年07月27日 星期三 10:07:22
 	 */
 	void Pickup();
+	
+	UFUNCTION(Client, Reliable, Category="Pickup", DisplayName="客户端拾取")
+	void CC_Pickup();
+
+	UFUNCTION(Server, Reliable, Category="Pickup", DisplayName="服务器拾取")
+	void SC_Pickup(AItemBase* PickupedUpItem, float BackpackItemChangedTime);
 
 	UFUNCTION(Category="Equipment")
 	void Equipment();
@@ -568,41 +580,38 @@ public:
 	FORCEINLINE float GetDisableGameplay() const { return bDisableGameplay; }
 
 	FORCEINLINE UBackpackComponent* GetBackpackComponent() const { return BackpackComponent; };
+	FORCEINLINE UBackpackLagCompensationComponent* GetBackpackLagCompensationComponent() const { return BackpackLagCompensationComponent; };
 
-	FORCEINLINE static void DisplayRole(ENetRole Role)
-	{
-		switch (Role)
-		{
-			case ROLE_Authority:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ROLE_Authority"));
-					break;
-				}
-			case ROLE_AutonomousProxy:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ROLE_AutonomousProxy"));
-					break;
-				}
-			case ROLE_SimulatedProxy:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ROLE_SimulatedProxy"));
-					break;
-				}
-			case ROLE_None:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ROLE_None"));
-					break;
-				}
-			case ROLE_MAX:
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ROLE_MAX"));
-					break;
-				}
-			default:
-			{
-					UE_LOG(LogTemp, Warning, TEXT("Default Role Output"));
-					break;
-			}
-		}
-	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	// ===================================================
+	
+
+	static void DisplayRole(ENetRole Role);
 };

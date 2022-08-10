@@ -4,19 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "ItemRender.generated.h"
+#include "ConsoleVariableActor.generated.h"
 
-UCLASS(BlueprintType, Blueprintable)
-class UNREALGAME_API AItemRender : public AActor
+UCLASS()
+class UNREALGAME_API AConsoleVariableActor : public AActor
 {
 	GENERATED_BODY()
-
-public:
-
+	
 public:	
 	// Sets default values for this actor's properties
-	AItemRender();
+	AConsoleVariableActor();
 
 protected:
 	// Called when the game starts or when spawned
@@ -25,5 +22,12 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+public:
+
+	static float GetShowLocalRoleDebugInfo();
+	static float GetClientServerTimeSync();
+	static float GetDetectPickableObjectDebug();
+	static float GetEnterOrLeavePickableItemLog();
 
 };

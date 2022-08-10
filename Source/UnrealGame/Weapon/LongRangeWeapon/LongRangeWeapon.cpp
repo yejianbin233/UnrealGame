@@ -16,12 +16,14 @@
 #include "UnrealGame/Component/Collimation/CrosshairComponent.h"
 #include "UnrealGame/DataAsset/LongRangeWeaponAsset.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
-#include "UnrealGame/HUD/Backpack/BackpackComponent.h"
+#include "UnrealGame/Backpack/BackpackComponent.h"
 #include "UnrealGame/Projectile/Projectile.h"
 
 ALongRangeWeapon::ALongRangeWeapon()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	LagCompensationComponent = CreateDefaultSubobject<ULRWLagCompensationComponent>(TEXT("LagCompensationComponent"));
 }
 
 void ALongRangeWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -37,6 +39,18 @@ void ALongRangeWeapon::OnConstruction(const FTransform& Transform)
 void ALongRangeWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (PlayerCharacter)
+	{
+		if (PlayerCharacter->HasAuthority())
+		{
+			OnServerLoadAmmoChangedFeedback.AddUObject(LagCompensationComponent, &ULRWLagCompensationComponent::ServerReportLoadAmmoChangedResult);
+		}
+		else
+		{
+			OnLoadAmmoChanged.AddUObject(LagCompensationComponent, &ULRWLagCompensationComponent::CacheLoadAmmoChangedData);
+		}
+	}
 }
 
 void ALongRangeWeapon::Tick(float DeltaSeconds)
@@ -113,9 +127,15 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 	// note: 需要 FireInterval 初始化后才能设置自动连续开火的定时器
 	if (HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::HoldFire, FireInterval, true);
+		// 服务器作为客户端调用 SNC_Fire
+		GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::SNC_Fire, FireInterval, true);
 		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
-
+	}
+	if (!HasAuthority())
+	{
+		// 客户端调用 CC_FireHold
+		GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::CC_FireHold, FireInterval, true);
+		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
 	}
 }
 
@@ -126,9 +146,183 @@ void ALongRangeWeapon::Equipment(bool Equipped)
 	EquipmentHandle(Equipped);
 }
 
-void ALongRangeWeapon::HoldFire()
+void ALongRangeWeapon::CC_Fire()
 {
-	SC_Fire();
+	UE_LOG(LogTemp, Warning, TEXT("SNC Fire! "));
+	if (CurrentFireInterval > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
+		return;
+	}
+
+	if (IsAmmoEmpty())
+	{
+		// 当手动开火时，如果没有子弹，将播放动画
+		PlayCharacterMontage(WeaponAmmoExhaustAnimMontage);
+		return;
+	}
+	
+	if (bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
+	{
+		// 根据播放的蒙太奇来判断是否继续执行"开火"
+		return;
+	}
+
+	// 请求服务器开火
+	float ClientFireTime = GetWorld()->GetTimeSeconds();
+	SC_Fire(ClientFireTime);
+	OnLoadAmmoChanged.Broadcast(ClientFireTime);
+	
+	// 播放开火相关动画
+	PlayCharacterMontage(CharacterFireAnimMontage);
+	PlayWeaponMontage(WeaponFireAnimMontage);
+
+	// TODO
+	SpawnProjectile();
+	SpawnCasing();
+
+	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
+	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
+	{
+		UCrosshairComponent* TempCrosshairComponent = Cast<UCrosshairComponent>(CollimationComponent);
+		if (TempCrosshairComponent)
+		{
+			TempCrosshairComponent->AddFireCount();
+		}
+	}
+	
+	LoadAmmo--;
+	UE_LOG(LogTemp, Warning, TEXT("CC LoadAmmo: %d"), LoadAmmo);
+
+	CurrentFireInterval = FireInterval;
+}
+
+void ALongRangeWeapon::SC_Fire(float ClientFireTime)
+{
+	UE_LOG(LogTemp, Warning, TEXT("SC Fire! "));
+	if (CurrentFireInterval > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
+		return;
+	}
+
+	if (IsAmmoEmpty())
+	{
+		// 当手动开火时，如果没有子弹，将播放动画
+		PlayCharacterMontageExceptClient(WeaponAmmoExhaustAnimMontage);
+		return;
+	}
+	
+	if (bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
+	{
+		// 根据播放的蒙太奇来判断是否继续执行"开火"
+		return;
+	}
+	
+	// 播放开火相关动画
+	PlayCharacterMontageExceptClient(CharacterFireAnimMontage);
+	PlayWeaponMontageExceptClient(WeaponFireAnimMontage);
+	
+	SpawnProjectile();
+	SpawnCasing();
+	
+	LoadAmmo--;
+	UE_LOG(LogTemp, Warning, TEXT("SC Ammo: %d"), LoadAmmo);
+
+	CurrentFireInterval = FireInterval;
+	OnServerLoadAmmoChangedFeedback.Broadcast(ClientFireTime, LoadAmmo);
+}
+
+void ALongRangeWeapon::SNC_Fire()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SNC Fire! "));
+	if (CurrentFireInterval > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
+		return;
+	}
+
+	if (IsAmmoEmpty())
+	{
+		// 当手动开火时，如果没有子弹，将播放动画
+		PlayCharacterMontage(WeaponAmmoExhaustAnimMontage);
+		return;
+	}
+	
+	if (bIsPlayWeaponReloadAnimMontage
+			|| bIsPlayWeaponAmmoExhaustAnimMontage)
+	{
+		// 根据播放的蒙太奇来判断是否继续执行"开火"
+		return;
+	}
+	
+	// 播放开火相关动画
+	PlayCharacterMontageExceptClient(CharacterFireAnimMontage);
+	PlayWeaponMontageExceptClient(WeaponFireAnimMontage);
+	
+	SpawnProjectile();
+	SpawnCasing();
+
+	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
+	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
+	{
+		UCrosshairComponent* TempCrosshairComponent = Cast<UCrosshairComponent>(CollimationComponent);
+		if (TempCrosshairComponent)
+		{
+			TempCrosshairComponent->AddFireCount();
+		}
+	}
+	
+	LoadAmmo--;
+	UE_LOG(LogTemp, Warning, TEXT("SNC Ammo: %d"), LoadAmmo);
+	CurrentFireInterval = FireInterval;
+}
+
+void ALongRangeWeapon::SNC_FireHold()
+{
+	SNC_Fire();
+}
+
+void ALongRangeWeapon::CC_FireHold_Implementation()
+{
+	CC_Fire();
+}
+
+void ALongRangeWeapon::CC_FireHoldHandle_Implementation()
+{
+	// 使用定时器，保持射击
+	if (GetWorld()->GetTimerManager().IsTimerPaused(FireHoldTimerHandle))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CC_UnPauseTimer"));
+		GetWorld()->GetTimerManager().UnPauseTimer(FireHoldTimerHandle);
+	}
+}
+
+void ALongRangeWeapon::SNC_FireHoldHandle()
+{
+	if (GetWorld()->GetTimerManager().IsTimerPaused(FireHoldTimerHandle))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SNC_UnPauseTimer"));
+		GetWorld()->GetTimerManager().UnPauseTimer(FireHoldTimerHandle);
+	}
+}
+
+void ALongRangeWeapon::CC_FireHoldStopHandle_Implementation()
+{
+	if (GetWorld()->GetTimerManager().IsTimerActive(FireHoldTimerHandle))
+	{
+		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
+	}
+}
+
+void ALongRangeWeapon::SNC_FireHoldStopHandle()
+{
+	if (GetWorld()->GetTimerManager().IsTimerActive(FireHoldTimerHandle))
+	{
+		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
+	}
 }
 
 void ALongRangeWeapon::EquipmentHandle_Implementation(bool Equipped)
@@ -143,72 +337,7 @@ void ALongRangeWeapon::EquipmentHandle_Implementation(bool Equipped)
 	}
 }
 
-void ALongRangeWeapon::SC_Fire_Implementation()
-{
-	if (CurrentFireInterval > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
-		return;
-	}
-
-	if (IsAmmoEmpty())
-	{
-		// 当手动开火时，如果没有子弹，将播放动画
-		PlayCharacterMontage(WeaponAmmoExhaustAnimMontage);
-		return;
-	}
-	
-	if (CharacterFireAnimMontage)
-	{
-		PlayCharacterMontage(CharacterFireAnimMontage);
-	}
-
-	if (WeaponFireAnimMontage)
-	{
-		PlayWeaponMontage(WeaponFireAnimMontage);
-	}
-
-	if (bIsPlayWeaponReloadAnimMontage
-			|| bIsPlayWeaponAmmoExhaustAnimMontage)
-	{
-		// 根据播放的蒙太奇来判断是否继续执行"开火"
-		return;
-	}
-	
-	SpawnProjectile();
-
-	SpawnCasing();
-
-	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
-	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
-	{
-		UCrosshairComponent* TempCrosshairComponent = Cast<UCrosshairComponent>(CollimationComponent);
-		if (TempCrosshairComponent)
-		{
-			TempCrosshairComponent->C_AddFireCount();
-		}
-	}
-	
-
-	LoadAmmo--;
-	UE_LOG(LogTemp, Warning, TEXT("%d"), LoadAmmo);
-
-	CurrentFireInterval = FireInterval;
-}
-
-void ALongRangeWeapon::SC_FireHold_Implementation()
-{
-	// 使用定时器，保持射击
-	if (GetWorld()->GetTimerManager().IsTimerPaused(FireHoldTimerHandle))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UnPauseTimer"));
-		GetWorld()->GetTimerManager().UnPauseTimer(FireHoldTimerHandle);
-	} else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Active"));
-	}
-}
-
+// 根据客户端生成子弹的时间，来处理服务器生成子弹的逻辑
 void ALongRangeWeapon::SpawnProjectile()
 {
 	if (ProjectileData.ProjectileClass)
@@ -301,8 +430,14 @@ void ALongRangeWeapon::SC_FireHoldStop_Implementation()
 	}
 }
 
-void ALongRangeWeapon::SC_Reload_Implementation()
+void ALongRangeWeapon::CC_Reload_Implementation()
 {
+	if (LoadAmmo == MaxReloadAmmoAmount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("不需要填充子弹!"));
+		return;
+	}
+	
 	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
 
 	TArray<FBackpackItemInfo> ProjectileItems;
@@ -313,8 +448,9 @@ void ALongRangeWeapon::SC_Reload_Implementation()
 		return;
 	}
 
-	Multicast_Reload();
-	
+	PlayCharacterMontage(CharacterReloadAnimMontage);
+	PlayWeaponMontage(WeaponReloadAnimMontage);
+
 	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
 
 	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
@@ -327,7 +463,7 @@ void ALongRangeWeapon::SC_Reload_Implementation()
 		ProjectileItem.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
-		PlayerCharacter->GetBackpackComponent()->UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
+		PlayerCharacter->GetBackpackComponent()->CC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
 		
 		if (TempMaxReloadAmmoAmount)
 		{
@@ -344,12 +480,121 @@ void ALongRangeWeapon::SC_Reload_Implementation()
 	}
 	
 	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
+
+	// 请求服务器填装子弹
+	const float ReloadAmmoChangedTime = GetWorld()->GetTimeSeconds();
+	SC_Reload(ReloadAmmoChangedTime);
+	OnLoadAmmoChanged.Broadcast(ReloadAmmoChangedTime);
 }
 
-void ALongRangeWeapon::Multicast_Reload_Implementation()
+void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 {
-	PlayCharacterMontage(CharacterReloadAnimMontage);
-	PlayWeaponMontage(WeaponReloadAnimMontage);
+	if (LoadAmmo == MaxReloadAmmoAmount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("不需要填充子弹!"));
+		return;
+	}
+	
+	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
+
+	TArray<FBackpackItemInfo> ProjectileItems;
+	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
+
+	if (ProjectileItems.Num() == 0)
+	{
+		// 服务器反馈填装子弹
+    	OnServerLoadAmmoChangedFeedback.Broadcast(ClientReloadTime, LoadAmmo);
+		return;
+	}
+	
+	PlayCharacterMontageExceptClient(CharacterReloadAnimMontage);
+	PlayWeaponMontageExceptClient(WeaponReloadAnimMontage);
+
+	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
+
+	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	
+	for (auto ProjectileItem : ProjectileItems)
+	{
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		TempMaxReloadAmmoAmount -= CurReloadNum;
+		ProjectileItem.Num -= CurReloadNum;
+
+		// 更新背包子弹剩余数量
+		PlayerCharacter->GetBackpackComponent()->SC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num, ClientReloadTime);
+		
+		if (TempMaxReloadAmmoAmount == 0)
+		{
+			break;
+		}
+	}
+
+	if (ProjectileDataTable)
+	{
+		FString ContentString;
+		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
+		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
+		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
+	}
+	
+	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
+
+	// 服务器反馈填装子弹
+	OnServerLoadAmmoChangedFeedback.Broadcast(ClientReloadTime, LoadAmmo);
+}
+
+void ALongRangeWeapon::SNC_Reload_Implementation()
+{
+	if (LoadAmmo == MaxReloadAmmoAmount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("不需要填充子弹!"));
+		return;
+	}
+
+	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
+
+	TArray<FBackpackItemInfo> ProjectileItems;
+	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
+
+	if (ProjectileItems.Num() == 0)
+	{
+		return;
+	}
+
+	PlayCharacterMontageExceptClient(CharacterReloadAnimMontage);
+	PlayWeaponMontageExceptClient(WeaponReloadAnimMontage);
+
+	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
+
+	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	
+	for (auto ProjectileItem : ProjectileItems)
+	{
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		TempMaxReloadAmmoAmount -= CurReloadNum;
+		ProjectileItem.Num -= CurReloadNum;
+
+		// 更新背包子弹剩余数量
+		PlayerCharacter->GetBackpackComponent()->SNC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
+		
+		if (TempMaxReloadAmmoAmount)
+		{
+			break;
+		}
+	}
+
+	if (ProjectileDataTable)
+	{
+		// 子弹的数据，生成子弹类，生成弹壳类
+		FString ContentString;
+		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
+		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
+		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
+	}
+	
+	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
 }
 
 bool ALongRangeWeapon::IsAmmoEmpty()
@@ -357,8 +602,13 @@ bool ALongRangeWeapon::IsAmmoEmpty()
 	return LoadAmmo <= 0;
 }
 
-void ALongRangeWeapon::PlayCharacterMontage_Implementation(UAnimMontage* AnimMontage)
+void ALongRangeWeapon::PlayCharacterMontage(UAnimMontage* AnimMontage)
 {
+	if (!AnimMontage)
+	{
+		return;
+	}
+	
 	if (AnimMontage == CharacterFireAnimMontage)
 	{
 		if (bIsPlayCharacterFireAnimMontage
@@ -403,8 +653,13 @@ void ALongRangeWeapon::PlayCharacterMontage_Implementation(UAnimMontage* AnimMon
 	}
 }
 
-void ALongRangeWeapon::PlayWeaponMontage_Implementation(UAnimMontage* AnimMontage)
+void ALongRangeWeapon::PlayWeaponMontage(UAnimMontage* AnimMontage)
 {
+	if (!AnimMontage)
+	{
+		return;
+	}
+	
 	if (AnimMontage == CharacterFireAnimMontage)
 	{
 		if (bIsPlayCharacterFireAnimMontage
@@ -444,4 +699,25 @@ void ALongRangeWeapon::PlayWeaponMontage_Implementation(UAnimMontage* AnimMontag
 			}
 		}
 	}
+}
+
+void ALongRangeWeapon::PlayCharacterMontageExceptClient_Implementation(UAnimMontage* AnimMontage)
+{
+	if (GetLocalRole() == ENetRole::ROLE_AutonomousProxy)
+	{
+		// 客户端的动画默认已播放，服务器多播不再处理客户端的蒙太奇播放
+		return;
+	}
+
+	PlayCharacterMontage(AnimMontage);
+}
+
+void ALongRangeWeapon::PlayWeaponMontageExceptClient_Implementation(UAnimMontage* AnimMontage)
+{
+	if (GetLocalRole() == ENetRole::ROLE_AutonomousProxy)
+	{
+		// 客户端的动画默认已播放，服务器多播不再处理客户端的蒙太奇播放
+		return;
+	}
+	PlayWeaponMontage(AnimMontage);
 }

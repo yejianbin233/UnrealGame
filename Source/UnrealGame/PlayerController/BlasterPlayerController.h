@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/PlayerController.h"
+#include "UnrealPlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class UNREALGAME_API ABlasterPlayerController : public APlayerController
+class UNREALGAME_API ABlasterPlayerController : public AUnrealPlayerController
 {
 	GENERATED_BODY()
 

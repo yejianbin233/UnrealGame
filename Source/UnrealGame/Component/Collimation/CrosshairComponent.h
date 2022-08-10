@@ -110,15 +110,15 @@ public:
 	virtual void ShowCollimation() override;
 	virtual void HideCollimation() override;
 	
-	UFUNCTION(Client, Reliable, DisplayName="增加开火计数")
-	void C_AddFireCount();
+	UFUNCTION(Category="Crosshair", DisplayName="增加开火计数")
+	void AddFireCount();
 	
 private:
-	UFUNCTION(Client, Reliable, DisplayName="开火计数减少处理")
-	void C_FireCountReduceHandle();
+	UFUNCTION(Category="Crosshair", DisplayName="开火计数减少处理")
+	void FireCountReduceHandle();
 
-	UFUNCTION(Client, Reliable, DisplayName="过热恢复处理")
-	void C_FireOverheatRecoverHandle();
+	UFUNCTION(Category="Crosshair", DisplayName="过热恢复处理")
+	void FireOverheatRecoverHandle();
 
 	// 十字准星扩散
 	UFUNCTION(DisplayName="更新准星扩散")

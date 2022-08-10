@@ -83,6 +83,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="背包物品唯一Id")
 	FString BackpackId;
 
+	UPROPERTY(DisplayName="加入服务器背包唯一ID")
+	FString ServerPushId;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="物品名称")
 	FName ItemName;
 

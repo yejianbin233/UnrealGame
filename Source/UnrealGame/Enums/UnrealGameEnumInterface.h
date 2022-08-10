@@ -29,3 +29,11 @@ enum class EWeaponPlay : uint8
 	Reload UMETA(DisplayName="装填子弹"),
 	Dry UMETA(DisplayName="缺少子弹"),
 };
+
+UENUM(BlueprintType)
+enum class EPickupResult : uint8
+{
+	All UMETA(DisplayName="拾取全部"),
+	Part UMETA(DisplayName="拾取部分"),
+	Fail UMETA(DisplayName="失败"),
+};

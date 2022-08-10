@@ -7,7 +7,7 @@
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Engine/DataTable.h"
-#include "ItemInfoObject.h"
+#include "../../Backpack/ItemInfoObject.h"
 #include "InventoryWidget.generated.h"
 
 

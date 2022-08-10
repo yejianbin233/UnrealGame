@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ItemInfoObject.h"
+#include "../../Backpack/ItemInfoObject.h"
 #include "Blueprint/UserWidget.h"
 #include "ItemWidget.generated.h"
 

@@ -23,11 +23,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item Info", DisplayName="场景物品信息")
 	FSceneItemInfo SceneItemInfo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item Info", DisplayName="物品变换")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Item Info", DisplayName="物品变换")
 	FTransform DeltaTransform;
 
-private:
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Item", DisplayName="实际物品信息")
+	FBackpackItemInfo ActualItemInfo;
 
+private:
 	// 用于判断物品是否动态生成网格体
 	bool bIsInitialized = false;
 
@@ -46,6 +48,20 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Init(FItemInfo ItemInfo);
 
+	UFUNCTION(Client, Reliable, Category="Pickup", DisplayName="客户端已拾取处理")
+	void CC_PickedUpHandle();
+	
+	UFUNCTION(NetMulticast, Reliable, Category="Pickup", DisplayName="客户端取消已拾取处理")
+    void CC_CanclePickedUpHandle();
+
+	// UFUNCTION(Server, Reliable, Category="Update ItemInfo", DisplayName="更新拾取后的物品信息")
+	// void SC_UpdateActualItemInfo(FBackpackItemInfo NewItemInfo);
+	
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	/*
 	 * @description: GetBackpackItemInfo - 根据场景物品信息获取对应的背包物品信息
 	 * 
@@ -58,10 +74,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Item Info")
 	FBackpackItemInfo GetBackpackItemInfo();
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 	
 private:
 	UFUNCTION()
@@ -69,5 +81,4 @@ private:
 
 	UFUNCTION()
 	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	
 };

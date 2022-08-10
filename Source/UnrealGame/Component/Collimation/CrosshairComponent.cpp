@@ -42,8 +42,8 @@ void UCrosshairComponent::Init(ABlasterCharacter* InPlayerCharacter)
 
 	if (PlayerCharacter->HasAuthority())
 	{
-		GetWorld()->GetTimerManager().SetTimer(RecoverTimerHandle, this, &UCrosshairComponent::C_FireOverheatRecoverHandle, RecoverInterval, true);
-		GetWorld()->GetTimerManager().SetTimer(FireCountReduceTimerHandle, this, &UCrosshairComponent::C_FireCountReduceHandle, FireCountReduceInterval, true);
+		GetWorld()->GetTimerManager().SetTimer(RecoverTimerHandle, this, &UCrosshairComponent::FireOverheatRecoverHandle, RecoverInterval, true);
+		GetWorld()->GetTimerManager().SetTimer(FireCountReduceTimerHandle, this, &UCrosshairComponent::FireCountReduceHandle, FireCountReduceInterval, true);
 	}
 }
 
@@ -63,7 +63,7 @@ void UCrosshairComponent::HideCollimation()
 	}
 }
 
-void UCrosshairComponent::C_AddFireCount_Implementation()
+void UCrosshairComponent::AddFireCount()
 {
 	bIsAllowRecover = false;
 	if (GetWorld()->GetTimerManager().TimerExists(AllowRecoverTimerHandle))
@@ -79,7 +79,8 @@ void UCrosshairComponent::C_AddFireCount_Implementation()
 	UpdateSpread(FireOverHeatValue);
 }
 
-void UCrosshairComponent::C_FireCountReduceHandle_Implementation()
+
+void UCrosshairComponent::FireCountReduceHandle()
 {
 	if (FireCount == 0)
 	{
@@ -96,7 +97,7 @@ void UCrosshairComponent::C_FireCountReduceHandle_Implementation()
 	FireCount = FMath::Clamp(FireCount-FireCountDecayValue, FireCountMin, FireCountMax);
 }
 
-void UCrosshairComponent::C_FireOverheatRecoverHandle_Implementation()
+void UCrosshairComponent::FireOverheatRecoverHandle()
 {
 	if (!bIsAllowRecover)
 	{

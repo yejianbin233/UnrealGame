@@ -7,10 +7,10 @@
 #include "UnrealGame/Weapon/Weapon.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Net/UnrealNetwork.h"
+#include "UnrealGame/Backpack/BackpackComponent.h"
 #include "UnrealGame/Component/Aim/AimComponent.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
-#include "UnrealGame/HUD/Backpack/BackpackComponent.h"
-#include "UnrealGame/HUD/Backpack/ItemBase.h"
+#include "UnrealGame/Backpack/ItemBase.h"
 #include "UnrealGame/Weapon/LongRangeWeapon/LongRangeWeapon.h"
 #include "UnrealGame/Weapon/ThrowableWeapon/ThrowableWeapon.h"
 
@@ -36,6 +36,8 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UCombatComponent, bIsAiming);
 }
 
+
+
 // Called when the game starts
 void UCombatComponent::BeginPlay()
 {
@@ -53,58 +55,65 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UCombatComponent::SC_Equipment_Implementation()
+void UCombatComponent::SC_Equipment_Implementation(AItemBase* EquipItem, float EquipTime)
 {
-	Equipment();
+	for (auto PickableObject : PlayerCharacter->PickableObjects)
+	{
+		if (PickableObject == EquipItem)
+		{
+			EPickupResult PickupResult = PlayerCharacter->GetBackpackComponent()->Pickup(PickableObject);
+			
+			if (PickupResult == EPickupResult::All)
+			{
+				PickableObject->Destroy();
+				SNC_Equipment(EquipItem);
+				PlayerCharacter->GetBackpackComponent()->OnServerReportBackpackItemChanged.Broadcast(EquipTime);
+			}
+		}
+	}
 }
 
-void UCombatComponent::Equipment()
+void UCombatComponent::SNC_Equipment(AItemBase* Item)
 {
-	// 检测检测
-	PlayerCharacter->TracePickableObject(EPickableObjectState::Equip);
-
 	// note：在 Pickup() 时会自动重置数据，因此在该处先获取数据
-	AItemBase* Item = Cast<AItemBase>(PlayerCharacter->PickableObjectData.PickableActor);
 	if (!Item)
 	{
 		return;
 	}
+	
 	FString Id = Item->SceneItemInfo.Id;
-	
-	// 拾取
-	PlayerCharacter->GetBackpackComponent()->Pickup();
-
-	
 	// 装备
-	if (PlayerCharacter->PickableObjectData.HandleState == EPickableObjectState::Pickup
-		&& PlayerCharacter->PickableObjectData.TargetState == EPickableObjectState::Equip)
+	FEquipmentInfo EquipmentInfo = PlayerCharacter->GetEquipmentActorClass(FName(Id));
+
+	FVector Location = PlayerCharacter->GetActorLocation();
+	AWeapon* EquipmentWeapon = Cast<AWeapon>(GetWorld()->SpawnActor(EquipmentInfo.EquipmentBase, &Location));
+
+	if (EquipmentWeapon)
 	{
-		FEquipmentInfo EquipmentInfo = PlayerCharacter->GetEquipmentActorClass(FName(Id));
+		EquipmentWeapon->Init(PlayerCharacter);
 
-		FVector Location = PlayerCharacter->GetActorLocation();
-		AWeapon* EquipmentWeapon = Cast<AWeapon>(GetWorld()->SpawnActor(EquipmentInfo.EquipmentBase, &Location));
-
-		if (EquipmentWeapon)
+		if (PlayerCharacter)
 		{
-			EquipmentWeapon->Init(PlayerCharacter);
+			const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(EquipmentWeapon->GetEquippedWeaponSocket());
 
-			if (PlayerCharacter)
-			{
-				const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(EquipmentWeapon->GetEquippedWeaponSocket());
+			EquippedSocket->AttachActor(EquipmentWeapon, PlayerCharacter->GetMesh());
 
-				EquippedSocket->AttachActor(EquipmentWeapon, PlayerCharacter->GetMesh());
+			EquippedWeapon = EquipmentWeapon;
 
-				EquippedWeapon = EquipmentWeapon;
-
-				// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
-				PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(EquippedWeapon->EquippedMontage);
+			// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
+			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(EquippedWeapon->EquippedMontage);
 			
-				EquippedWeapon->Equipment(true);
-			}
+			EquippedWeapon->Equipment(true);
 		}
-		
-		PlayerCharacter->PickableObjectData.HandleState = EPickableObjectState::Default;
-		PlayerCharacter->PickableObjectData.TargetState = EPickableObjectState::Default;
+	}
+}
+
+void UCombatComponent::SNC_UnEquipment()
+{
+	// 不装备 / 切换武器，将武器自身数据保存到背包武器对应的属性上，如枪填装了子弹，那么将数量更新到背包的枪物品的数量上。
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	}
 }
 
@@ -139,7 +148,7 @@ void UCombatComponent::Aim(bool bToAim)
 	}
 }
 
-void UCombatComponent::SC_Fire_Implementation()
+void UCombatComponent::SNC_Fire()
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -149,7 +158,7 @@ void UCombatComponent::SC_Fire_Implementation()
 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
 	{
 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-		TempLongRangeWeapon->SC_Fire();
+		TempLongRangeWeapon->SNC_Fire();
 	}
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
@@ -158,7 +167,7 @@ void UCombatComponent::SC_Fire_Implementation()
 	}
 }
 
-void UCombatComponent::SC_FireHold_Implementation()
+void UCombatComponent::CC_Fire_Implementation()
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -168,7 +177,7 @@ void UCombatComponent::SC_FireHold_Implementation()
 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
 	{
 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-		TempLongRangeWeapon->SC_FireHold();
+		TempLongRangeWeapon->CC_Fire();
 	}
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
@@ -177,7 +186,26 @@ void UCombatComponent::SC_FireHold_Implementation()
 	}
 }
 
-void UCombatComponent::SC_Reload_Implementation()
+// void UCombatComponent::SC_Fire_Implementation(float ClientFireTime)
+// {
+// 	if (EquippedWeapon == nullptr)
+// 	{
+// 		return;
+// 	}
+// 	
+// 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+// 	{
+// 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+// 		TempLongRangeWeapon->Fire();
+// 	}
+// 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+// 	{
+// 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+// 		// TODO
+// 	}
+// }
+
+void UCombatComponent::CC_FireHold_Implementation()
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -187,7 +215,7 @@ void UCombatComponent::SC_Reload_Implementation()
 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
 	{
 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-		TempLongRangeWeapon->SC_Reload();
+		TempLongRangeWeapon->CC_FireHoldHandle();
 	}
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
@@ -196,7 +224,7 @@ void UCombatComponent::SC_Reload_Implementation()
 	}
 }
 
-void UCombatComponent::SC_FireHoldStop_Implementation()
+void UCombatComponent::SNC_FireHold()
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -206,7 +234,102 @@ void UCombatComponent::SC_FireHoldStop_Implementation()
 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
 	{
 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-		TempLongRangeWeapon->SC_FireHoldStop();
+		TempLongRangeWeapon->SNC_FireHoldHandle();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+}
+
+void UCombatComponent::CC_FireHoldStop_Implementation()
+{
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->CC_FireHoldStopHandle();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+}
+
+void UCombatComponent::SNC_FireHoldStop()
+{
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SNC_FireHoldStopHandle();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+}
+
+void UCombatComponent::CC_Reload_Implementation()
+{
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->CC_Reload();
+	}
+	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+	{
+		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+		// TODO
+	}
+}
+
+// void UCombatComponent::SC_Reload_Implementation(float ClientReloadTime)
+// {
+// 	if (EquippedWeapon == nullptr)
+// 	{
+// 		return;
+// 	}
+// 	
+// 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+// 	{
+// 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+// 		TempLongRangeWeapon->SC_Reload(ClientReloadTime);
+// 	}
+// 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
+// 	{
+// 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
+// 		// TODO
+// 	}
+// }
+
+void UCombatComponent::SNC_Reload()
+{
+	if (EquippedWeapon == nullptr)
+	{
+		return;
+	}
+	
+	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
+	{
+		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
+		TempLongRangeWeapon->SNC_Reload();
 	}
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{

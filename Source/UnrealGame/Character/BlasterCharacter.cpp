@@ -20,14 +20,16 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "UnrealGame/Component/Combat/CombatComponent.h"
-#include "UnrealGame/HUD/Backpack/BackpackComponent.h"
+#include "UnrealGame/Backpack/BackpackComponent.h"
 #include "UnrealGame/HUD/Backpack/BackpackWidget.h"
 #include "UnrealGame/InteractiveActor/InteractiveDoor.h"
 #include "DataRegistrySubsystem.h"
-#include "GameFramework/GameStateBase.h"
+#include "UnrealGame/Backpack/BackpackLagCompensationComponent.h"
+#include "UnrealGame/Backpack/ItemBase.h"
+#include "UnrealGame/ConsoleVariable/ConsoleVariableActor.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
-#include "UnrealGame/GameState/BlasterGameState.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
+
 
 void ABlasterCharacter::CurrentPickableActorInter()
 {
@@ -58,6 +60,9 @@ ABlasterCharacter::ABlasterCharacter()
 
 	BackpackComponent = CreateDefaultSubobject<UBackpackComponent>(TEXT("BackpackComponent"));
 	BackpackComponent->SetIsReplicated(true);
+
+	BackpackLagCompensationComponent = CreateDefaultSubobject<UBackpackLagCompensationComponent>(TEXT("BackpackLagCompensationComponent"));
+	BackpackLagCompensationComponent->SetIsReplicated(true);
 	
 	// 设置移动组件可蹲伏
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
@@ -90,7 +95,9 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ABlasterCharacter, Health);
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
 	DOREPLIFETIME(ABlasterCharacter, PickableObjectData);
-	DOREPLIFETIME(ABlasterCharacter, bHasPickableObject);
+	
+	// DOREPLIFETIME(ABlasterCharacter, bHasPickableObject);
+	
 	DOREPLIFETIME(ABlasterCharacter, bIsJump);
 	DOREPLIFETIME(ABlasterCharacter, bElimmed);
 	DOREPLIFETIME(ABlasterCharacter, MovementDirection);
@@ -425,7 +432,14 @@ void ABlasterCharacter::FireButtonPressed()
 {
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->SC_Fire();
+		if (HasAuthority())
+		{
+			GetCombatComponent()->SNC_Fire();
+		}
+		else
+		{
+			GetCombatComponent()->CC_Fire();
+		}
 	}
 }
 
@@ -433,15 +447,31 @@ void ABlasterCharacter::FireHold()
 {
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->SC_FireHold();
+		if (HasAuthority())
+		{
+		
+			GetCombatComponent()->SNC_FireHold();
+		}
+		else
+		{
+			GetCombatComponent()->CC_FireHold();
+		}
 	}
+	
 }
 
 void ABlasterCharacter::FireButtonReleased()
 {
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->SC_FireHoldStop();
+		if (HasAuthority())
+		{
+			GetCombatComponent()->SNC_FireHoldStop();
+		}
+		else
+		{
+			GetCombatComponent()->CC_FireHoldStop();
+		}
 	}
 }
 
@@ -449,7 +479,16 @@ void ABlasterCharacter::ReloadButtonPressed()
 {
 	if (GetCombatComponent())
 	{
-		GetCombatComponent()->SC_Reload();
+		if (HasAuthority())
+		{
+			// 服务器作为客户端
+			GetCombatComponent()->SNC_Reload();
+		}
+		else
+		{
+			// 客户端
+			GetCombatComponent()->CC_Reload();
+		}
 	}
 }
 
@@ -474,16 +513,69 @@ void ABlasterCharacter::RotateDragItemWidget()
 
 void ABlasterCharacter::Pickup()
 {
-	// 检测检测
-	TracePickableObject(EPickableObjectState::Pickup);
+	
+	if (HasAuthority())
+	{
+		// 如果本地客户端作为服务器，需要进行射线检测后才能执行拾取，但不需要进行客户端模拟阶段
+		AItemBase* PickupItem = TracePickableObject(EPickableObjectState::Pickup);
+		GetBackpackComponent()->SNC_Pickup(PickupItem);
+	}
+	else
+	{
+		CC_Pickup();
+	}
+}
 
-	// 实际拾取
-	GetBackpackComponent()->Pickup();
+void ABlasterCharacter::CC_Pickup_Implementation()
+{
+	// 客户端射线检测是否有可拾取物品
+	AItemBase* PickupItem = TracePickableObject(EPickableObjectState::Pickup);
+
+	if (PickupItem)
+	{
+		// 客户端模拟拾取
+		EPickupResult PickupResult = GetBackpackComponent()->Pickup(PickupItem);
+		
+		// 客户端拾取成功后，服务器执行实际拾取
+		float BackpackItemChangedTime= GetWorld()->GetTimeSeconds();
+		
+		if (PickupResult == EPickupResult::All)
+		{
+			SC_Pickup(PickupItem, BackpackItemChangedTime);
+			// 客户端隐藏物品，等待服务器拾取成功后销毁
+			PickupItem->CC_PickedUpHandle();
+			
+			GetBackpackComponent()->OnClientBackpackItemChanged.Broadcast(BackpackItemChangedTime);
+		}
+		else if(PickupResult == EPickupResult::Part)
+		{
+			// 部分拾取不需要客户端隐藏物品
+			SC_Pickup(PickupItem, BackpackItemChangedTime);
+			GetBackpackComponent()->OnClientBackpackItemChanged.Broadcast(BackpackItemChangedTime);
+		}
+	}
+}
+
+void ABlasterCharacter::SC_Pickup_Implementation(AItemBase* PickupedUpItem, float BackpackItemChangedTime)
+{
+	// 客户端触发可拾取后，在服务器中只需要附近有该可拾取的物品就可直接进行拾取，而不用向客户端需要先进行射线检测再拾取
+	for (auto PickableObject : PickableObjects)
+	{
+		if (PickableObject == PickupedUpItem)
+		{
+			GetBackpackComponent()->SC_Pickup(PickableObject, BackpackItemChangedTime);
+		}
+	}
 }
 
 void ABlasterCharacter::Equipment()
 {
-	GetCombatComponent()->SC_Equipment();
+	AItemBase* PickupItem = TracePickableObject(EPickableObjectState::Pickup);
+	if (PickupItem)
+	{
+		float EquitTime = GetWorld()->GetTimeSeconds();
+		GetCombatComponent()->SC_Equipment(PickupItem, EquitTime);
+	}
 }
 
 void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
@@ -754,18 +846,13 @@ void ABlasterCharacter::HighLightPickableObject()
 	}
 }
 
-void ABlasterCharacter::TracePickableObject_Implementation(EPickableObjectState PickableObjectState)
+AItemBase* ABlasterCharacter::TracePickableObject(EPickableObjectState PickableObjectState)
 {
-	if (!HasAuthority())
-	{
-		return;
-	}
-	
-	if (bHasPickableObject)
+	if (PickableObjects.Num() > 0)
 	{
 		APlayerController* PlayerController = Cast<APlayerController>(GetController());
 
-		if (ensure(PlayerController))
+		if (PlayerController)
 		{
 			FVector2D ViewportSize;
 			GEngine->GameViewport->GetViewportSize(ViewportSize);
@@ -803,20 +890,30 @@ void ABlasterCharacter::TracePickableObject_Implementation(EPickableObjectState 
 				true);
 
 			const bool HitBlock = HitResult.bBlockingHit;
+
 			if (HitBlock)
 			{
-				PickableObjectData.PickableActor = HitResult.GetActor();
-				PickableObjectData.HandleState = EPickableObjectState::Default;
-				PickableObjectData.TargetState = PickableObjectState;
+				return Cast<AItemBase>(HitResult.GetActor());
 			}
 			else
 			{
-				PickableObjectData.PickableActor = nullptr;
-				PickableObjectData.HandleState = EPickableObjectState::Default;
-				PickableObjectData.TargetState = EPickableObjectState::Default;
+				return nullptr;
 			}
+			// if (HitBlock)
+			// {
+			// 	PickableObjectData.PickableActor = HitResult.GetActor();
+			// 	PickableObjectData.HandleState = EPickableObjectState::Default;
+			// 	PickableObjectData.TargetState = PickableObjectState;
+			// }
+			// else
+			// {
+			// 	PickableObjectData.PickableActor = nullptr;
+			// 	PickableObjectData.HandleState = EPickableObjectState::Default;
+			// 	PickableObjectData.TargetState = EPickableObjectState::Default;
+			// }
 		}
 	}
+	return nullptr;
 }
 
 // void ABlasterCharacter::UpdateJumpToGroundBlend()
@@ -1208,4 +1305,49 @@ ECombatState ABlasterCharacter::GetCombatState() const
 	//
 	// return Combat->CombatState;
 	return ECombatState::Combat;
+}
+
+// extern TAutoConsoleVariable<int32> CVarShowLocalRoleDebugInfo;
+
+void ABlasterCharacter::DisplayRole(ENetRole Role)
+{
+	{
+		float bIsShow = AConsoleVariableActor::GetShowLocalRoleDebugInfo();
+		if (bIsShow)
+		{
+			switch (Role)
+			{
+			case ROLE_Authority:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_Authority"));
+					break;
+				}
+			case ROLE_AutonomousProxy:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_AutonomousProxy"));
+					break;
+				}
+			case ROLE_SimulatedProxy:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_SimulatedProxy"));
+					break;
+				}
+			case ROLE_None:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_None"));
+					break;
+				}
+			case ROLE_MAX:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ROLE_MAX"));
+					break;
+				}
+			default:
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Default Role Output"));
+					break;
+				}
+			}
+		}
+	}
 }

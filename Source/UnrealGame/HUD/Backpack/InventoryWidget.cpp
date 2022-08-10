@@ -3,11 +3,10 @@
 
 #include "InventoryWidget.h"
 
-#include "BackpackComponent.h"
+#include "../../Backpack/BackpackComponent.h"
 #include "ItemWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/CanvasPanelSlot.h"
-#include "Components/SizeBox.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
