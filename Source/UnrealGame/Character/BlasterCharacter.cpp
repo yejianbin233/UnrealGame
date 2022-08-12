@@ -24,8 +24,10 @@
 #include "UnrealGame/HUD/Backpack/BackpackWidget.h"
 #include "UnrealGame/InteractiveActor/InteractiveDoor.h"
 #include "DataRegistrySubsystem.h"
+#include "Components/BoxComponent.h"
 #include "UnrealGame/Backpack/BackpackLagCompensationComponent.h"
 #include "UnrealGame/Backpack/ItemBase.h"
+#include "UnrealGame/Component/LagCompensation/PlayerLagCompensationComponent.h"
 #include "UnrealGame/ConsoleVariable/ConsoleVariableActor.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
@@ -85,6 +87,81 @@ ABlasterCharacter::ABlasterCharacter()
 	DissolveTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 
 	CombatCopmponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+
+	/* 玩家角色滞后补偿相关设置 */
+	PlayerLagCompensationComponent = CreateDefaultSubobject<UPlayerLagCompensationComponent>(TEXT("PlayerLagCompensationComponent"));
+	HeadBoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("HeadBoxComponent"));
+	HeadBoxComponent->SetupAttachment(GetMesh(), FName(TEXT("head")));
+	HeadBoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Spine_05_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Spine_05_BoxComponent"));
+	Spine_05_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("spine_05")));
+	Spine_05_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Spine_03_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Spine_03_BoxComponent"));
+	Spine_03_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("spine_03")));
+	Spine_03_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Spine_01_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Spine_01_BoxComponent"));
+	Spine_01_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("spine_01")));
+	Spine_01_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Clavicle_Out_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Clavicle_Out_BoxComponent"));
+	Left_Clavicle_Out_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("clavicle_out_l")));
+	Left_Clavicle_Out_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Upperarm_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Upperarm_Out_BoxComponent"));
+	Left_Upperarm_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("upperarm_l")));
+	Left_Upperarm_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Lowerarm_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Lowerarm_BoxComponent"));
+	Left_Lowerarm_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("lowerarm_l")));
+	Left_Lowerarm_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Hand_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Hand_BoxComponent"));
+	Left_Hand_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("hand_l")));
+	Left_Hand_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Thigh_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Thigh_BoxComponent"));
+	Left_Thigh_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("thigh_l")));
+	Left_Thigh_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Calf_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Calf_BoxComponent"));
+	Left_Calf_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("calf_l")));
+	Left_Calf_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Left_Foot_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Left_Foot_BoxComponent"));
+	Left_Foot_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("foot_l")));
+	Left_Foot_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+
+	Right_Clavicle_Out_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Clavicle_Out_BoxComponent"));
+	Right_Clavicle_Out_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("clavicle_out_r")));
+	Right_Clavicle_Out_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Upperarm_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Upperarm_Out_BoxComponent"));
+	Right_Upperarm_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("upperarm_r")));
+	Right_Upperarm_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Lowerarm_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Lowerarm_BoxComponent"));
+	Right_Lowerarm_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("lowerarm_r")));
+	Right_Lowerarm_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Hand_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Hand_BoxComponent"));
+	Right_Hand_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("hand_r")));
+	Right_Hand_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Thigh_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Thigh_BoxComponent"));
+	Right_Thigh_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("thigh_r")));
+	Right_Thigh_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Calf_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Calf_BoxComponent"));
+	Right_Calf_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("calf_r")));
+	Right_Calf_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	
+	Right_Foot_BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Right_Foot_BoxComponent"));
+	Right_Foot_BoxComponent->SetupAttachment(GetMesh(), FName(TEXT("foot_r")));
+	Right_Foot_BoxComponent->ComponentTags.Add(BoneCollisionBoxTagName);
+	/* 玩家角色滞后补偿相关设置 */
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

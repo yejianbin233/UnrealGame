@@ -37,3 +37,13 @@ enum class EPickupResult : uint8
 	Part UMETA(DisplayName="拾取部分"),
 	Fail UMETA(DisplayName="失败"),
 };
+
+UENUM(BlueprintType)
+enum class EReapperMode : uint8
+{
+	// 临时重现，延迟后销毁
+	Temporary UMETA(DisplayName="临时"),
+
+	// 序列重现
+	Sequence UMETA(DisplayName="序列"),
+};

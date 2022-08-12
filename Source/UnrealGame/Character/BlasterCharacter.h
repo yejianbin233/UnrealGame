@@ -119,10 +119,10 @@ public:
 	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
 	bool bHasPickableObject;
 
-	UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取物品数据")
+	UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取物品数据")
 	FPickupObjectData PickableObjectData;
 
-	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取的物品数组")
+	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取的物品数组")
 	TArray<AItemBase*> PickableObjects;
 	
 private:
@@ -148,13 +148,76 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName="背包滞后补偿组件", meta=(AllowPrivateAccess=true))
 	class UBackpackLagCompensationComponent* BackpackLagCompensationComponent;
 
+	/* 玩家角色滞后补偿相关设置 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, DisplayName="玩家角色滞后补偿组件", meta=(AllowPrivateAccess=true))
+	class UPlayerLagCompensationComponent* PlayerLagCompensationComponent;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, DisplayName="玩家滞后补偿骨骼碰撞组件标签名", meta=(AllowPrivateAccess=true))
+	FName BoneCollisionBoxTagName=TEXT("BoneCollisionBox");
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* HeadBoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Spine_05_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Spine_03_BoxComponent;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Spine_01_BoxComponent;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Clavicle_Out_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Upperarm_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Lowerarm_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Hand_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Thigh_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Calf_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Left_Foot_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Clavicle_Out_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Upperarm_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Lowerarm_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Hand_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Thigh_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Calf_BoxComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Collision Box", meta=(AllowPrivateAccess=true))
+	class UBoxComponent* Right_Foot_BoxComponent;
+	
+	/* 玩家角色滞后补偿相关设置 */
+
 	// TODO - 武器，和战斗组件
 	// 武器
 	UPROPERTY(ReplicatedUsing="OnRep_OverlappingWeapon", DisplayName="武器")
 	class AWeapon* OverlappingWeapon;
 
 	// 战斗组件
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component", DisplayName="战斗组件", meta=(AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component", DisplayName="战斗组件", meta=(AllowPrivateAccess=true))
 	class UCombatComponent* CombatCopmponent;
 	
 	// 开火蒙太奇
@@ -227,11 +290,11 @@ private:
 	 * AddControllerYawInput 等函数实现使用相关函数
 	 */
 	// 鼠标转向移动速度控制
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess), DisplayName="控制鼠标左右转向变化速率")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess=true), DisplayName="控制鼠标左右转向变化速率")
 	float MouseTurnRate = 1.0f;
 
 	// 鼠标上下视角移动速度控制
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess), DisplayName="控制鼠标俯仰视变化速率")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Mouse Settings", meta=(AllowPrivateAccess=true), DisplayName="控制鼠标俯仰视变化速率")
 	float MouseLookupRate = 1.0f;
 
 	// 用于禁止玩家移动输入(不包括旋转)和装备武器
@@ -239,66 +302,66 @@ private:
 	bool bDisableGameplay = false;
 
 	// 玩家速度方向
-	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="速度移动方向")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess=true), DisplayName="速度移动方向")
 	EMovementDirection MovementDirection;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess), DisplayName="是否跳跃中")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement States", meta=(AllowPrivateAccess=true), DisplayName="是否跳跃中")
 	bool bIsJump;
 
-	UPROPERTY(BlueprintReadWrite, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="跳跃到地面的过渡混合值")
+	UPROPERTY(BlueprintReadWrite, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="跳跃到地面的过渡混合值")
 	float JumpToGroundBlend;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="跳跃到地面的过渡距离")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="跳跃到地面的过渡距离")
 	float JumpToGroundTraceDistance = 20.0f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="行走移动速度")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="行走移动速度")
 	float WalkSpeed=300.0f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="加速移动速度")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="加速移动速度")
 	float SprintSpeed=650.0f;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true))
 	float MovementSpeedLevel;
 
 	// 最大向上仰视角度 0-180
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="最大向上仰视角度 0-180")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="最大向上仰视角度 0-180")
 	float MaxTopPitch = 40;
 
 	// 最大向下俯视角度 0-180
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess), DisplayName="最大向下俯视角度 0-180")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true), DisplayName="最大向下俯视角度 0-180")
 	float MaxLowPitch = 60;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true))
 	float AO_PitchOffset;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true))
 	float AO_YawOffset;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Movement Properties", meta=(AllowPrivateAccess=true))
 	float AO_Blend;
 
-	UPROPERTY(EditAnywhere, Category="Movement Properties", meta=(AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, Category="Movement Properties", meta=(AllowPrivateAccess=true))
 	float AO_Blend_Speed = 1;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测起点偏移值")
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess=true), DisplayName="可拾取检测起点偏移值")
 	float PickupTraceStartOffset = 100;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测半径")
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess=true), DisplayName="可拾取检测半径")
 	float PickupTraceRadius = 10;
 	
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测距离")
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess=true), DisplayName="可拾取检测距离")
 	float PickupTraceDistance = 100;
 
-	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess), DisplayName="可拾取检测物品类型")
+	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess=true), DisplayName="可拾取检测物品类型")
 	TEnumAsByte<ETraceTypeQuery> PickableTraceTypeQuery;
 
-	// UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess), DisplayName="当前可拾取物品")
+	// UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取物品")
 	// AActor* CurrentPickableActor;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的距离")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess=true), DisplayName="可交互的距离")
 	float InteractiveTraceDistance = 100;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess), DisplayName="可交互的检测对象")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess=true), DisplayName="可交互的检测对象")
 	TEnumAsByte<ETraceTypeQuery> InteractiveTraceType;
 
 	
@@ -582,9 +645,9 @@ public:
 	FORCEINLINE UBackpackComponent* GetBackpackComponent() const { return BackpackComponent; };
 	FORCEINLINE UBackpackLagCompensationComponent* GetBackpackLagCompensationComponent() const { return BackpackLagCompensationComponent; };
 
+	FORCEINLINE FName GetBoneCollisionBoxTagName() const { return BoneCollisionBoxTagName; };
 
-
-
+	FORCEINLINE UPlayerLagCompensationComponent* GetPlayerLagCompensationComponent() const { return PlayerLagCompensationComponent; };
 
 
 

@@ -55,3 +55,12 @@ struct FPickupObjectData
 	EPickableObjectState TargetState;
 };
 
+USTRUCT()
+struct FBoxData
+{
+	GENERATED_BODY()
+	
+	FVector Location;
+	FRotator Rotator;
+	FVector ScaledExtent;
+};
