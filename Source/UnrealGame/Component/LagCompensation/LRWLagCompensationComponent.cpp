@@ -71,5 +71,13 @@ void ULRWLagCompensationComponent::ServerReportLoadAmmoChangedResult_Implementat
 			}
 		}
 	}
+	else
+	{
+		ALongRangeWeapon* LongRangeWeapon = Cast<ALongRangeWeapon>(GetOwner());
+		if (LongRangeWeapon)
+		{
+			LongRangeWeapon->LoadAmmo = AmmoNum;
+		}
+	}
 }
 

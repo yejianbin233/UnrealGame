@@ -413,7 +413,6 @@ void ABlasterCharacter::LookUp(const FInputActionValue& ActionValue)
 	// 正数向下看
 	float Value = ActionValue.GetMagnitude() * MouseLookupRate;
 
-	// TODO - 用户友好优化
 	float TempMaxLowPitch = 360 - MaxLowPitch;
 	
 	float NextPitch = GetControlRotation().Pitch + Value;
@@ -641,6 +640,7 @@ void ABlasterCharacter::SC_Pickup_Implementation(AItemBase* PickupedUpItem, floa
 		if (PickableObject == PickupedUpItem)
 		{
 			GetBackpackComponent()->SC_Pickup(PickableObject, BackpackItemChangedTime);
+			break;
 		}
 	}
 }
@@ -1120,8 +1120,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	if (UEnhancedInputComponent* EInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		//... TODO
-
 		if (EIA_Aim)
 		{
 			EInputComponent->BindAction(EIA_Aim, ETriggerEvent::Triggered, this, &ThisClass::AimButtonPressed);
@@ -1138,7 +1136,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Discard)
 		{
-			// TODO
+			// TODO 装备丢弃
 		}
 
 		if (EIA_Pickup)
@@ -1148,7 +1146,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Equipment)
 		{
-			// TODO
 			EInputComponent->BindAction(EIA_Equipment, ETriggerEvent::Triggered, this, &ThisClass::Equipment);
 		}
 
@@ -1209,7 +1206,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_UseSwitch)
 		{
-			// TODO
+			// TODO 武器切换
 		}
 
 		if (EIA_OpenOrCloseBackpack)

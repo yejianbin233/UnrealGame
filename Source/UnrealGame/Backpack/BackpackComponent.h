@@ -170,7 +170,7 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:07
 	 */
-	// TODO - 在客户端调用生成的物品尺寸会变小。
+	// TODO - 在游戏过程中，服务器创建的物品尺寸在服务器端正常，而在客户端却缩小了。
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端丢弃物品后在场景中生成物品")
 	void CC_CreateItemAfterDiscard(const FString& Id);
 

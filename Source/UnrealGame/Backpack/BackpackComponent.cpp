@@ -39,7 +39,7 @@ void UBackpackComponent::BeginPlay()
 		FBackpackItemInfo Temp;
 		Temp.SetDefaultData();
 
-		// TODO Warning：初始化 Item 数组时，使用拥有默认数据的 Item 填充，如果不设置默认数据，默认为 nullptr 会存在 Bug，导致 UE 编辑器崩溃。
+		// Warning：初始化 Item 数组时，使用拥有默认数据的 Item 填充，如果不设置默认数据，默认为 nullptr 会存在Bug，导致 UE 编辑器崩溃。
 		Items[Index] = Temp;
 	}
 
@@ -146,6 +146,7 @@ void UBackpackComponent::SC_Pickup_Implementation(AItemBase* PickItem, float Bac
 {
 	EPickupResult PickupResult = Pickup(PickItem);
 
+	ABlasterCharacter::DisplayRole(PlayerCharacter->GetLocalRole());
 	if (PickupResult == EPickupResult::All)
 	{
 		// // 当服务器成功拾取物品时，广播
@@ -664,7 +665,6 @@ void UBackpackComponent::CC_TryRemoveItem_Implementation(const FString& Backpack
 		}
 		float RemoveTime = GetWorld()->GetTimeSeconds();
 		OnClientBackpackItemChanged.Broadcast(RemoveTime);
-		SC_TryRemoveItem(BackpackId, RemoveTime);
 	}
 	
 }

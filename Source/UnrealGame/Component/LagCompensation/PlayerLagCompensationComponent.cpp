@@ -31,7 +31,7 @@ void UPlayerLagCompensationComponent::BeginPlay()
 	}
 }
 
-void UPlayerLagCompensationComponent::ReapperPlayerCharacterInTimePoint(float ServerTime, float ReapperDuration)
+void UPlayerLagCompensationComponent::ReapperPlayerCharacterInTimePoint(float ServerTime, float ReapperDuration, FName ReapperName)
 {
 	FVector Location(0,0,0);
 	FRotator Rotator(0,0,0);
@@ -42,11 +42,11 @@ void UPlayerLagCompensationComponent::ReapperPlayerCharacterInTimePoint(float Se
 	if (PlayerCharacterReapper)
 	{
 		TMap<FName, FBoxData> TemporaryReapperDataMap = DataInterporation(PlayerCharacterLagCompensationDatas, ServerTime);
-		PlayerCharacterReapper->TemporaryReapper(TemporaryReapperDataMap, ReapperDuration);
+		PlayerCharacterReapper->TemporaryReapper(TemporaryReapperDataMap, ReapperDuration, ReapperName);
 	}
 }
 
-void UPlayerLagCompensationComponent::ReapperPlayerCharacterSequenceFromTimePointStart(float ServerTime)
+void UPlayerLagCompensationComponent::ReapperPlayerCharacterSequenceFromTimePointStart(float ServerTime, FName ReapperName)
 {
 	FVector Location(0,0,0);
 	FRotator Rotator(0,0,0);
@@ -60,7 +60,7 @@ void UPlayerLagCompensationComponent::ReapperPlayerCharacterSequenceFromTimePoin
 		TDoubleLinkedList<FPlayerCharacterLagCompensationData> SequenceReapperDatas;
 		GetSequenceReapperDatas(SequenceReapperDatas, ServerTime);
 	
-		PlayerCharacterReapper->SequenceReapper(SequenceReapperDatas, ReapperSequenceFrame, true);
+		PlayerCharacterReapper->SequenceReapper(SequenceReapperDatas, ReapperName, ReapperSequenceFrame,  true);
 	}
 }
 

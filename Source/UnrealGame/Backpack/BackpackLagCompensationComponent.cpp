@@ -109,6 +109,11 @@ void UBackpackLagCompensationComponent::ServerFeedbackBackpackItemChangedResult_
 			}
 		}
 	}
+	else
+	{
+		// 如果客户端没有缓存数据，那么说明服务器添加了背包数据，请求更新
+		ClientRequestServerBackpackDataOverride();
+	}
 }
 
 void UBackpackLagCompensationComponent::ClientRequestServerBackpackDataOverride_Implementation()

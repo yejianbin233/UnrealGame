@@ -60,10 +60,10 @@ public:
 public:
 	
 	UFUNCTION(BlueprintCallable, Category="Player Character Lag Compensation", DisplayName="重现某个时间点的玩家角色并持续指定时间")
-	void ReapperPlayerCharacterInTimePoint(float ServerTime, float ReapperDuration);
+	void ReapperPlayerCharacterInTimePoint(float ServerTime, float ReapperDuration, FName ReapperName);
 
 	UFUNCTION(BlueprintCallable, Category="Player Character Lag Compensation", DisplayName="从指定时间点开始重现玩家角色移动序列")
-	void ReapperPlayerCharacterSequenceFromTimePointStart(float ServerTime);
+	void ReapperPlayerCharacterSequenceFromTimePointStart(float ServerTime, FName ReapperName);
 	
 protected:
 	// Called when the game starts

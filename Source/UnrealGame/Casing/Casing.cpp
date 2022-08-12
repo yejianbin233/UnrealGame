@@ -23,7 +23,7 @@ ACasing::ACasing()
 	// 添加重力
 	CasingMeshComponent->SetEnableGravity(true);
 
-	// TODO 通知刚体碰撞
+	// 通知刚体碰撞
 	CasingMeshComponent->SetNotifyRigidBodyCollision(true);
 
 	ShellEjectionImpulse = 10.0f;

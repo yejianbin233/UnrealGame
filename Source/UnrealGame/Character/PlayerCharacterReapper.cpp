@@ -55,20 +55,20 @@ void APlayerCharacterReapper::Destroyed()
 	Super::Destroyed();
 }
 
-void APlayerCharacterReapper::TemporaryReapper(TMap<FName, FBoxData>& InReapperDataMap, float DelayDestroyTime)
+void APlayerCharacterReapper::TemporaryReapper(TMap<FName, FBoxData>& InReapperDataMap, float DelayDestroyTime, FName ReapperName)
 {
 	ReapperDataMap.Empty();
 	ReapperDataMap.Append(InReapperDataMap);
 
 	ReapperMode = EReapperMode::Temporary;
-	InitCollisionBoxs();
+	InitCollisionBoxs(ReapperName);
 	
 	// 定时销毁
 	GetWorld()->GetTimerManager().SetTimer(TemporaryReapperTimerHandle, this, &APlayerCharacterReapper::DelayDestroy, DelayDestroyTime, false);
 }
 
 void APlayerCharacterReapper::SequenceReapper(
-	TDoubleLinkedList<FPlayerCharacterLagCompensationData>& InReapperSequenceDatas, float FrameInterval, bool bIsLoop)
+	TDoubleLinkedList<FPlayerCharacterLagCompensationData>& InReapperSequenceDatas, FName ReapperName, float FrameInterval, bool bIsLoop)
 {
 	ReapperSequenceDatas.Empty();
 	TDoubleLinkedList<FPlayerCharacterLagCompensationData>::TDoubleLinkedListNode* HeadNode = InReapperSequenceDatas.GetHead();
@@ -84,12 +84,12 @@ void APlayerCharacterReapper::SequenceReapper(
 	ReapperSequenceFrameInterval = FrameInterval;
 	ServerReapperTime = ReapperSequenceDatas.GetHead() == nullptr ? 0 : ReapperSequenceDatas.GetHead()->GetValue().ServerCacheTime;
 	ReapperMode = EReapperMode::Sequence;
-	InitCollisionBoxs();
+	InitCollisionBoxs(ReapperName);
 	
 	GetWorld()->GetTimerManager().SetTimer(SequenceReapperTimerHandle, this, &APlayerCharacterReapper::SequenceReapperHandle, ReapperSequenceFrameInterval, true);
 }
 
-void APlayerCharacterReapper::InitCollisionBoxs()
+void APlayerCharacterReapper::InitCollisionBoxs(FName ReapperName)
 {
 	if (ReapperMode == EReapperMode::Temporary)
 	{
@@ -100,6 +100,8 @@ void APlayerCharacterReapper::InitCollisionBoxs()
 				FRotator BoxRotator(0,0,0);
 				FActorSpawnParameters SpawnParameters;
 				AReapperCollisionBox* TempReapperCollisionBox = GetWorld()->SpawnActor<AReapperCollisionBox>(ReapperCollisionBoxClass, ReapperData.Value.Location, BoxRotator, SpawnParameters);
+
+				TempReapperCollisionBox->ReapperName = ReapperName;
 				TempReapperCollisionBox->CollisionBox->SetWorldRotation(ReapperData.Value.Rotator);
 				TempReapperCollisionBox->CollisionBox->SetBoxExtent(ReapperData.Value.ScaledExtent);
 
@@ -117,6 +119,8 @@ void APlayerCharacterReapper::InitCollisionBoxs()
 				FRotator BoxRotator(0,0,0);
 				FActorSpawnParameters SpawnParameters;
 				AReapperCollisionBox* TempReapperCollisionBox = GetWorld()->SpawnActor<AReapperCollisionBox>(ReapperCollisionBoxClass, ReapperData.Value.Location, BoxRotator, SpawnParameters);
+
+				TempReapperCollisionBox->ReapperName = ReapperName;
 				TempReapperCollisionBox->CollisionBox->SetWorldRotation(ReapperData.Value.Rotator);
 				TempReapperCollisionBox->CollisionBox->SetBoxExtent(ReapperData.Value.ScaledExtent);
 
@@ -129,13 +133,26 @@ void APlayerCharacterReapper::InitCollisionBoxs()
 
 void APlayerCharacterReapper::DelayDestroy()
 {
-	this->Destroy();
+	for (auto Item : ReapperCollisionBoxMap)
+	{
+		if (Item.Value)
+		{
+			Item.Value->Destroy();
+		}
+	}
+	
+	bool DestryResult = this->Destroy(true);
+	if (!DestryResult)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Reapper Destroy Fail!"));
+	}
 }
 
 void APlayerCharacterReapper::SequenceReapperHandle()
 {
 	if (!bIsLoopPlaySequence)
 	{
+		// 终止
 		GetWorld()->GetTimerManager().ClearTimer(SequenceReapperTimerHandle);
 		GetWorld()->GetTimerManager().SetTimer(TemporaryReapperTimerHandle, this, &APlayerCharacterReapper::DelayDestroy, ReapperSequenceFrameInterval, false);
 	}
@@ -177,6 +194,12 @@ void APlayerCharacterReapper::SequenceReapperHandle()
 							CollisionBoxComponent->UpdateReappeCollisionBox(BoxItem.Value);
 						}
 					}
+				}
+				else
+				{
+					// 终止
+					GetWorld()->GetTimerManager().ClearTimer(SequenceReapperTimerHandle);
+					GetWorld()->GetTimerManager().SetTimer(TemporaryReapperTimerHandle, this, &APlayerCharacterReapper::DelayDestroy, ReapperSequenceFrameInterval, false);
 				}
 			}
 		}

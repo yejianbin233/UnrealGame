@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "../Weapon.h"
-#include "Curves/CurveVector.h"
 #include "UnrealGame/Component/LagCompensation/LRWLagCompensationComponent.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "LongRangeWeapon.generated.h"
@@ -66,20 +65,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Fire", DisplayName="连续开火定时器")
 	FTimerHandle FireHoldTimerHandle;
 	
-	// 装弹数量 TODO 
-	// UPROPERTY(ReplicatedUsing="", BlueprintReadWrite, Category="Ammo", DisplayName="装填子弹剩余数量")
 	UPROPERTY(BlueprintReadWrite, Category="Ammo", DisplayName="装填子弹剩余数量")
 	int32 LoadAmmo;
 
 	// 最大装弹数量
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ammo", DisplayName="子弹最大填充量")
+	UPROPERTY(BlueprintReadWrite, Category="Ammo", DisplayName="子弹最大填充量")
 	int32 MaxReloadAmmoAmount;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Ammo", DisplayName="子弹数据表")
+	UPROPERTY(BlueprintReadWrite, Category="Ammo", DisplayName="子弹数据表")
 	UDataTable* ProjectileDataTable;
 
 	// 当填装的子弹改变时
 	FOnLoadAmmoChanged OnLoadAmmoChanged;
+	// 当服务器反馈子弹数量改变时
 	FOnServerLoadAmmoChangedFeedback OnServerLoadAmmoChangedFeedback;
 
 private:
@@ -102,56 +100,84 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void InitHandle(ABlasterCharacter* InPlayerCharacter);
-	
+
 	virtual void Equipment(bool Equipped) override;
 
-	UFUNCTION(Client, Reliable, Category="Equipment", DisplayName="装备处理")
+	UFUNCTION(Client, Reliable, Category="Equipment", DisplayName="装备后的处理")
 	void EquipmentHandle(bool Equipped);
 	
 	/* 射击功能 */
-	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="开火")
-	virtual void CC_Fire();
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Fire", DisplayName="开火")
+	void CC_Fire();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Fire", DisplayName="开火")
+	void SC_Fire(float ClientFireTime);
 
 	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="开火")
-	virtual void SC_Fire(float ClientFireTime);
-
-	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="开火")
-	virtual void SNC_Fire();
+	void SNC_Fire();
 
 	UFUNCTION(Client, Reliable, Category="Fire", DisplayName="连续开火")
-	virtual void CC_FireHold();
+	void CC_FireHold();
 
 	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="服务器作为客户端连续开火")
-	virtual void SNC_FireHold();
+	void SNC_FireHold();
 	
 	UFUNCTION(Client, Reliable, Category="Fire", DisplayName="连续开火")
-	virtual void CC_FireHoldHandle();
+	void CC_FireHoldHandle();
 
 	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="服务器作为客户端连续开火")
-	virtual void SNC_FireHoldHandle();
-
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Fire", DisplayName="服务器暂停连续开火")
-	virtual void SC_FireHoldStop();
+	void SNC_FireHoldHandle();
 
 	UFUNCTION(Client, Reliable, Category="Fire", DisplayName="客户端暂停连续开火")
-	virtual void CC_FireHoldStopHandle();
+	void CC_FireHoldStopHandle();
 
 	UFUNCTION(BlueprintCallable, Category="Fire", DisplayName="服务器作为客户端展厅连续开火")
-	virtual void SNC_FireHoldStopHandle();
+	void SNC_FireHoldStopHandle();
 	/* 射击功能 */
 
 	/*填装子弹*/
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Ammo", DisplayName="客户端装填")
-	virtual void CC_Reload();
+	void CC_Reload();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Ammo", DisplayName="服务器装填")
-	virtual void SC_Reload(float ClientReloadTime);
+	void SC_Reload(float ClientReloadTime);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Ammo", DisplayName="服务器作为客户端装填")
-	virtual void SNC_Reload();
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="服务器作为客户端装填")
+	void SNC_Reload();
+
+	UFUNCTION(Client, Reliable, DisplayName="客户端设置子弹类型")
+	void CC_SetProjectileData(FName ProjectileId);
+	
+	UFUNCTION(NetMulticast, Reliable, DisplayName="服务器设置子弹类型")
+	void SC_SetProjectileData(FName ProjectileId);
+
+	void SetProjectileData(FName ProjectileId);
+
+	// 生成子弹函数
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Ammo", DisplayName="客户端生成子弹")
+	void CC_SpawnProjectile();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Ammo", DisplayName="服务器生成子弹")
+	void SC_SpawnProjectile();
+
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="服务器作为客户端生成子弹")
+	void SNC_SpawnProjectile();
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Ammo", DisplayName="多播生成子弹")
+	void NM_SpawnProjectile();
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Ammo", DisplayName="多播(除了客户端)生成子弹")
+	void NM_SpawnProjectileExceptClient();
+	// 生成子弹函数
+
+	// 生成子弹壳函数
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹")
+	void SpawnProjectile();
+	
+	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹壳")
+	void SpawnCasing();
 	/*填装子弹*/
 	
-
 	// note 如果 PlayCharacterMontage 和 PlayWeaponMontage 一起调用，应先调用 PlayCharacterMontage
 	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="播放玩家角色蒙太奇动画")
 	void PlayCharacterMontage(UAnimMontage* AnimMontage);
@@ -173,12 +199,6 @@ protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹")
-	void SpawnProjectile();
-
-	UFUNCTION(BlueprintCallable, Category="Ammo", DisplayName="生成子弹壳")
-	void SpawnCasing();
-
 private:
 
 	void PlayMontageStarted(UAnimMontage* AnimMontage);
@@ -193,5 +213,8 @@ public:
 
 	bool IsAmmoEmpty();
 };
+
+
+
 
 

@@ -125,19 +125,6 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Backpack Function", DisplayName="创建物品格控件")
 	UItemWidget* CreateItemWidget(FVector2D InPosition, struct FBackpackItemInfo InItemInfo);
-
-	/*
-	 *	DragOverHandle - 用于背包控件及子控件(物品控件)在拖动物品控件时的拖动处理
-	 *
-	 *	在拖动时，根据拖动鼠标的位置判断拖动物品控件底下位于背包的那一格，在其他绘制方框以辅助玩家放置物品
-	 *
-	 *	MouseAbsolutePosition - 鼠标位置在屏幕空间上的绝对位置
-	 *
-	 *	note：TODO 已蓝图实现
-	 */
-	// UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, BlueprintCosmetic, DisplayName="拖动处理")
-	// void DragOverHandle(FVector2D MouseAbsolutePosition);
-
 	
 	/*
 	 * @description: IsValidBackpackArea - 判断是否将物品拖出背包的有效空间外

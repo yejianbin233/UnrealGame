@@ -86,8 +86,14 @@ void UCombatComponent::SNC_Equipment(AItemBase* Item)
 	FEquipmentInfo EquipmentInfo = PlayerCharacter->GetEquipmentActorClass(FName(Id));
 
 	FVector Location = PlayerCharacter->GetActorLocation();
-	AWeapon* EquipmentWeapon = Cast<AWeapon>(GetWorld()->SpawnActor(EquipmentInfo.EquipmentBase, &Location));
+	FActorSpawnParameters EquipmentWeaponSpawnParameters;
+	EquipmentWeaponSpawnParameters.Owner = GetOwner();
+	EquipmentWeaponSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	AWeapon* EquipmentWeapon = GetWorld()->SpawnActor<AWeapon>(EquipmentInfo.EquipmentBase, Location, FRotator(0), EquipmentWeaponSpawnParameters);
 
+	UE_LOG(LogTemp, Warning, TEXT("123"));
+	ABlasterCharacter::DisplayRole(EquipmentWeapon->GetLocalRole());
 	if (EquipmentWeapon)
 	{
 		EquipmentWeapon->Init(PlayerCharacter);
@@ -144,7 +150,6 @@ void UCombatComponent::Aim(bool bToAim)
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -163,7 +168,6 @@ void UCombatComponent::SNC_Fire()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -182,28 +186,8 @@ void UCombatComponent::CC_Fire_Implementation()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
-
-// void UCombatComponent::SC_Fire_Implementation(float ClientFireTime)
-// {
-// 	if (EquippedWeapon == nullptr)
-// 	{
-// 		return;
-// 	}
-// 	
-// 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
-// 	{
-// 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-// 		TempLongRangeWeapon->Fire();
-// 	}
-// 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
-// 	{
-// 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-// 		// TODO
-// 	}
-// }
 
 void UCombatComponent::CC_FireHold_Implementation()
 {
@@ -220,7 +204,6 @@ void UCombatComponent::CC_FireHold_Implementation()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -239,7 +222,6 @@ void UCombatComponent::SNC_FireHold()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -258,7 +240,6 @@ void UCombatComponent::CC_FireHoldStop_Implementation()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -277,7 +258,6 @@ void UCombatComponent::SNC_FireHoldStop()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -296,28 +276,8 @@ void UCombatComponent::CC_Reload_Implementation()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
-
-// void UCombatComponent::SC_Reload_Implementation(float ClientReloadTime)
-// {
-// 	if (EquippedWeapon == nullptr)
-// 	{
-// 		return;
-// 	}
-// 	
-// 	if (EquippedWeapon->GetWeaponType() == EWeaponType::LongRangeWeapon)
-// 	{
-// 		ALongRangeWeapon* TempLongRangeWeapon = Cast<ALongRangeWeapon>(EquippedWeapon);
-// 		TempLongRangeWeapon->SC_Reload(ClientReloadTime);
-// 	}
-// 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
-// 	{
-// 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-// 		// TODO
-// 	}
-// }
 
 void UCombatComponent::SNC_Reload()
 {
@@ -334,7 +294,6 @@ void UCombatComponent::SNC_Reload()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 }
 
@@ -364,7 +323,6 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	else if (EquippedWeapon->GetWeaponType() == EWeaponType::ThrowableWeapon)
 	{
 		AThrowableWeapon* TempThrowableWeapon = Cast<AThrowableWeapon>(EquippedWeapon);
-		// TODO
 	}
 	UE_LOG(LogTemp, Warning, TEXT("OnRep Equip Weapon"));
 }

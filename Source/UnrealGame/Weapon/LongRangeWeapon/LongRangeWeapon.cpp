@@ -64,7 +64,8 @@ void ALongRangeWeapon::Tick(float DeltaSeconds)
 void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 {
 	Super::InitHandle(InPlayerCharacter);
-	
+
+
 	if (CollimationComponentClass)
 	{
 		CollimationComponent = NewObject<UCollimationComponent>(this, CollimationComponentClass);
@@ -120,6 +121,7 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 	CharacterReloadAnimMontage = LongRangeWeaponAsset->CharacterReloadAnimMontage;
 	WeaponAmmoExhaustAnimMontage = LongRangeWeaponAsset->WeaponAmmoExhaustAnimMontage;
 	FireProjectileSocketName = LongRangeWeaponAsset->FireProjectileSocketName;
+	FireCasingSocketName = LongRangeWeaponAsset->FireCasingSocketName;
 	FireInterval = LongRangeWeaponAsset->FireInterval;
 	MaxReloadAmmoAmount = LongRangeWeaponAsset->MaxReloadAmmoAmount;
 	ProjectileDataTable = LongRangeWeaponAsset->ProjectDataTable;
@@ -137,6 +139,8 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 		GetWorld()->GetTimerManager().SetTimer(FireHoldTimerHandle, this, &ALongRangeWeapon::CC_FireHold, FireInterval, true);
 		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
 	}
+	
+	
 }
 
 void ALongRangeWeapon::Equipment(bool Equipped)
@@ -146,9 +150,14 @@ void ALongRangeWeapon::Equipment(bool Equipped)
 	EquipmentHandle(Equipped);
 }
 
-void ALongRangeWeapon::CC_Fire()
+void ALongRangeWeapon::CC_Fire_Implementation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("SNC Fire! "));
+	UE_LOG(LogTemp, Warning, TEXT("CC Fire! "));
+	// 请求服务器开火
+	float ClientFireTime = GetWorld()->GetTimeSeconds();
+	// note：只要客户端触发开火，为了让服务器有相同的反应，应该也触发服务器开火，不管是否满足开火条件
+	SC_Fire(ClientFireTime);
+	
 	if (CurrentFireInterval > 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Shooting too fast! "));
@@ -159,6 +168,7 @@ void ALongRangeWeapon::CC_Fire()
 	{
 		// 当手动开火时，如果没有子弹，将播放动画
 		PlayCharacterMontage(WeaponAmmoExhaustAnimMontage);
+		
 		return;
 	}
 	
@@ -169,18 +179,14 @@ void ALongRangeWeapon::CC_Fire()
 		return;
 	}
 
-	// 请求服务器开火
-	float ClientFireTime = GetWorld()->GetTimeSeconds();
-	SC_Fire(ClientFireTime);
+	
 	OnLoadAmmoChanged.Broadcast(ClientFireTime);
 	
 	// 播放开火相关动画
 	PlayCharacterMontage(CharacterFireAnimMontage);
 	PlayWeaponMontage(WeaponFireAnimMontage);
 
-	// TODO
-	SpawnProjectile();
-	SpawnCasing();
+	CC_SpawnProjectile();
 
 	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
 	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
@@ -198,7 +204,7 @@ void ALongRangeWeapon::CC_Fire()
 	CurrentFireInterval = FireInterval;
 }
 
-void ALongRangeWeapon::SC_Fire(float ClientFireTime)
+void ALongRangeWeapon::SC_Fire_Implementation(float ClientFireTime)
 {
 	UE_LOG(LogTemp, Warning, TEXT("SC Fire! "));
 	if (CurrentFireInterval > 0)
@@ -225,8 +231,7 @@ void ALongRangeWeapon::SC_Fire(float ClientFireTime)
 	PlayCharacterMontageExceptClient(CharacterFireAnimMontage);
 	PlayWeaponMontageExceptClient(WeaponFireAnimMontage);
 	
-	SpawnProjectile();
-	SpawnCasing();
+	SC_SpawnProjectile();
 	
 	LoadAmmo--;
 	UE_LOG(LogTemp, Warning, TEXT("SC Ammo: %d"), LoadAmmo);
@@ -262,8 +267,7 @@ void ALongRangeWeapon::SNC_Fire()
 	PlayCharacterMontageExceptClient(CharacterFireAnimMontage);
 	PlayWeaponMontageExceptClient(WeaponFireAnimMontage);
 	
-	SpawnProjectile();
-	SpawnCasing();
+	SNC_SpawnProjectile();
 
 	// 准星扩散，根据枚举类型判断将转换到哪个子类准星组件
 	if (CollimationComponent->GetCollimationType() == ECollimationType::Crosshair)
@@ -338,6 +342,39 @@ void ALongRangeWeapon::EquipmentHandle_Implementation(bool Equipped)
 }
 
 // 根据客户端生成子弹的时间，来处理服务器生成子弹的逻辑
+void ALongRangeWeapon::CC_SpawnProjectile_Implementation()
+{
+	SpawnProjectile();
+	SpawnCasing();
+}
+
+void ALongRangeWeapon::SC_SpawnProjectile_Implementation()
+{
+	NM_SpawnProjectileExceptClient();
+}
+
+void ALongRangeWeapon::SNC_SpawnProjectile()
+{
+	NM_SpawnProjectile();
+}
+
+void ALongRangeWeapon::NM_SpawnProjectile_Implementation()
+{
+	SpawnProjectile();
+	SpawnCasing();
+}
+
+void ALongRangeWeapon::NM_SpawnProjectileExceptClient_Implementation()
+{
+	ABlasterCharacter::DisplayRole(PlayerCharacter->GetLocalRole());
+	if (PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		return;
+	}
+	SpawnProjectile();
+	SpawnCasing();
+}
+
 void ALongRangeWeapon::SpawnProjectile()
 {
 	if (ProjectileData.ProjectileClass)
@@ -351,6 +388,7 @@ void ALongRangeWeapon::SpawnProjectile()
 			FActorSpawnParameters SpawnParameters;
 			SpawnParameters.Owner = PlayerCharacter;
 			SpawnParameters.Instigator = PlayerCharacter;
+			SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			
 			UWorld* World = GetWorld();
 			if (World)
@@ -376,14 +414,15 @@ void ALongRangeWeapon::SpawnCasing()
 		{
 			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMeshComponent);
 
-			UWorld* World = GetWorld();
-			if (World)
+			FActorSpawnParameters CasingSpawnParameters;
+			CasingSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			ACasing* Casing = GetWorld()->SpawnActor<ACasing>(ProjectileData.CasingClass
+				, SocketTransform.GetLocation()
+				, SocketTransform.GetRotation().Rotator()
+				, CasingSpawnParameters);
+			if (Casing)
 			{
-				World->SpawnActor<ACasing>(
-					ProjectileData.CasingClass
-					, SocketTransform.GetLocation()
-					, SocketTransform.GetRotation().Rotator()
-				);
+				UE_LOG(LogTemp, Warning, TEXT("Casing Spawn Success!"));
 			}
 		}
 	}
@@ -422,16 +461,12 @@ void ALongRangeWeapon::PlayMontageEnded(UAnimMontage* AnimMontage, bool bInterru
 	}
 }
 
-void ALongRangeWeapon::SC_FireHoldStop_Implementation()
-{
-	if (GetWorld()->GetTimerManager().IsTimerActive(FireHoldTimerHandle))
-	{
-		GetWorld()->GetTimerManager().PauseTimer(FireHoldTimerHandle);
-	}
-}
-
 void ALongRangeWeapon::CC_Reload_Implementation()
 {
+	// 请求服务器填装子弹
+	const float ReloadAmmoChangedTime = GetWorld()->GetTimeSeconds();
+	SC_Reload(ReloadAmmoChangedTime);
+	
 	if (LoadAmmo == MaxReloadAmmoAmount)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("不需要填充子弹!"));
@@ -471,19 +506,12 @@ void ALongRangeWeapon::CC_Reload_Implementation()
 		}
 	}
 
-	if (ProjectileDataTable)
-	{
-		FString ContentString;
-		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
-		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
-		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
-	}
+	CC_SetProjectileData(*ProjectileInfo.Id);
 	
 	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
 
-	// 请求服务器填装子弹
-	const float ReloadAmmoChangedTime = GetWorld()->GetTimeSeconds();
-	SC_Reload(ReloadAmmoChangedTime);
+	ABlasterCharacter::DisplayRole(GetLocalRole());
+	
 	OnLoadAmmoChanged.Broadcast(ReloadAmmoChangedTime);
 }
 
@@ -530,13 +558,7 @@ void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 		}
 	}
 
-	if (ProjectileDataTable)
-	{
-		FString ContentString;
-		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
-		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
-		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
-	}
+	SC_SetProjectileData(*ProjectileInfo.Id);
 	
 	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
 
@@ -544,8 +566,12 @@ void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 	OnServerLoadAmmoChangedFeedback.Broadcast(ClientReloadTime, LoadAmmo);
 }
 
-void ALongRangeWeapon::SNC_Reload_Implementation()
+void ALongRangeWeapon::SNC_Reload()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
 	if (LoadAmmo == MaxReloadAmmoAmount)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("不需要填充子弹!"));
@@ -585,16 +611,35 @@ void ALongRangeWeapon::SNC_Reload_Implementation()
 		}
 	}
 
+	SetProjectileData(*ProjectileInfo.Id);
+	
+	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
+}
+
+void ALongRangeWeapon::CC_SetProjectileData_Implementation(FName ProjectileId)
+{
+	SetProjectileData(ProjectileId);
+}
+
+void ALongRangeWeapon::SC_SetProjectileData_Implementation(FName ProjectileId)
+{
+	if (PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		return;
+	}
+	SetProjectileData(ProjectileId);
+}
+
+void ALongRangeWeapon::SetProjectileData(FName ProjectileId)
+{
 	if (ProjectileDataTable)
 	{
 		// 子弹的数据，生成子弹类，生成弹壳类
 		FString ContentString;
-		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(FName(ProjectileInfo.Id), ContentString);
+		FProjectileData* DT_ProjectileData = ProjectileDataTable->FindRow<FProjectileData>(ProjectileId, ContentString);
 		ProjectileData.ProjectileClass = DT_ProjectileData->ProjectileClass;
 		ProjectileData.CasingClass = DT_ProjectileData->CasingClass;
 	}
-	
-	LoadAmmo = MaxReloadAmmoAmount - TempMaxReloadAmmoAmount;
 }
 
 bool ALongRangeWeapon::IsAmmoEmpty()

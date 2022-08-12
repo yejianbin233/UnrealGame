@@ -47,3 +47,13 @@ enum class EReapperMode : uint8
 	// 序列重现
 	Sequence UMETA(DisplayName="序列"),
 };
+
+UENUM(BlueprintType)
+enum class EProjectileHitMode : uint8
+{
+	// 预测 - 在服务器的生成的子弹不采用实时碰撞检测处理，而实现预测功能检测子弹伤害碰撞
+	Predict UMETA(DisplayName="预测"),
+
+	// 实时 - 在服务器的生成的子弹采用实时碰撞检测处理
+	RealTime UMETA(DisplayName="实时"),
+};

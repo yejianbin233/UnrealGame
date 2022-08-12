@@ -19,6 +19,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category="Reapper", DisplayName="Reapper Collision Box Component")
 	UBoxComponent* CollisionBox;
+
+	FName ReapperName;
 	
 public:	
 	// Sets default values for this actor's properties
@@ -78,10 +80,10 @@ public:
 	APlayerCharacterReapper();
 
 	// 临时重现
-	void TemporaryReapper(TMap<FName, FBoxData>& InReapperDataMap, float DelayDestroyTime);
+	void TemporaryReapper(TMap<FName, FBoxData>& InReapperDataMap, float DelayDestroyTime, FName ReapperName);
 
 	// 序列重现
-	void SequenceReapper(TDoubleLinkedList<FPlayerCharacterLagCompensationData>& InReapperSequenceDatas, float FrameInterval = 0.1f, bool bIsLoop = false);
+	void SequenceReapper(TDoubleLinkedList<FPlayerCharacterLagCompensationData>& InReapperSequenceDatas, FName ReapperName, float FrameInterval = 0.1f, bool bIsLoop = false);
 
 protected:
 	// Called when the game starts or when spawned
@@ -93,7 +95,7 @@ protected:
 private:
 
 	// 初始化所有碰撞盒子
-	void InitCollisionBoxs();
+	void InitCollisionBoxs(FName ReapperName);
 
 	// 延迟销毁定时器处理函数
 	UFUNCTION()
