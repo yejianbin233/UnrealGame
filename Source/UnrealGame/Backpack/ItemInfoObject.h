@@ -65,6 +65,7 @@ struct FItemInfo : public FTableRowBase
 	// 在场景中的 Item 对应的 Actor 类
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="场景物品类")
 	TSubclassOf<class AItemBase> ItemClass;
+	
 };
 
 /*
@@ -110,6 +111,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="是否已旋转")
 	bool bIsRotated;
 
+	// TODO 冗余数据 - 背包数据暂时未设想太多，暂时将所有数据集中在一起
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="远程武器装备子弹数量")
+	float LongRangeWeaponEquipAmmoNum;
+
 	void SetDefaultData()
 	{
 		this->Id = nullptr;
@@ -120,6 +125,7 @@ public:
 		this->OccupyCellXYLength = FIntPoint(0,0);
 		this->bIsCanStacking = false;
 		this->MaxStackingNum = 0;
+		this->LongRangeWeaponEquipAmmoNum = 0;
 	}
 
 	void Rotate()
@@ -212,6 +218,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="是否已旋转")
 	bool bIsRotated;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="远程武器装备子弹数量")
+	float LongRangeWeaponEquipAmmoNum;
 	
 public:
 
@@ -219,7 +228,6 @@ public:
 	FBackpackItemInfo ConvertTo()
 	{
 		FBackpackItemInfo BackpackItemInfo;
-
 		BackpackItemInfo.Id = this->Id;
 		BackpackItemInfo.BackpackId = this->BackpackId;
 		BackpackItemInfo.ItemName = this->ItemName;
@@ -230,7 +238,7 @@ public:
 		BackpackItemInfo.bIsCanStacking = this->bIsCanStacking;
 		BackpackItemInfo.MaxStackingNum = this->MaxStackingNum;
 		BackpackItemInfo.bIsRotated = this->bIsRotated;
-
+		BackpackItemInfo.LongRangeWeaponEquipAmmoNum = this->LongRangeWeaponEquipAmmoNum;
 		return BackpackItemInfo;
 	}
 
@@ -238,7 +246,6 @@ public:
 	void Rotate()
 	{
 		this->bIsRotated = !this->bIsRotated;
-		
 		int X = OccupyCellXYLength.X;
 		OccupyCellXYLength.X = OccupyCellXYLength.Y;
 		OccupyCellXYLength.Y = X;
@@ -247,12 +254,7 @@ public:
 	UFUNCTION(BlueprintCallable, DisplayName="是否可旋转")
 	bool CanRotate()
 	{
-		
 		bool Result = OccupyCellXYLength.X != OccupyCellXYLength.Y;
-
-		// UE_LOG(LogTemp, Warning, TEXT("X: %d, Y: %d"), OccupyCellXYLength.X, OccupyCellXYLength.Y);
-		// UE_LOG(LogTemp, Warning, TEXT("Result: %d"), Result);
-		
 		return Result;
 	}
 	

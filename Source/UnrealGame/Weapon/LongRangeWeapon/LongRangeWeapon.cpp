@@ -498,8 +498,13 @@ void ALongRangeWeapon::CC_Reload_Implementation()
 		ProjectileItem.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
-		PlayerCharacter->GetBackpackComponent()->CC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
-		
+		TArray<FBackpackItemInfo> BackpackItemInfos;
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		for (auto BackpackItemInfo : BackpackItemInfos)
+		{
+			BackpackItemInfo.Num = ProjectileItem.Num;
+			PlayerCharacter->GetBackpackComponent()->CC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo);
+		}
 		if (TempMaxReloadAmmoAmount)
 		{
 			break;
@@ -550,7 +555,13 @@ void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 		ProjectileItem.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
-		PlayerCharacter->GetBackpackComponent()->SC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num, ClientReloadTime);
+		TArray<FBackpackItemInfo> BackpackItemInfos;
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		for (auto BackpackItemInfo : BackpackItemInfos)
+		{
+			BackpackItemInfo.Num = ProjectileItem.Num;
+			PlayerCharacter->GetBackpackComponent()->SC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo, ClientReloadTime);
+		}
 		
 		if (TempMaxReloadAmmoAmount == 0)
 		{
@@ -603,8 +614,13 @@ void ALongRangeWeapon::SNC_Reload()
 		ProjectileItem.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
-		PlayerCharacter->GetBackpackComponent()->SNC_UpdateItemNum(ProjectileItem.BackpackId, ProjectileItem.Num);
-		
+		TArray<FBackpackItemInfo> BackpackItemInfos;
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		for (auto BackpackItemInfo : BackpackItemInfos)
+		{
+			BackpackItemInfo.Num = ProjectileItem.Num;
+			PlayerCharacter->GetBackpackComponent()->SNC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo);
+		}
 		if (TempMaxReloadAmmoAmount)
 		{
 			break;

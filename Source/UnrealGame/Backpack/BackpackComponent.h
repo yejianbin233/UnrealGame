@@ -25,6 +25,8 @@ DECLARE_EVENT(UBackpackComponent, FOnBackpackItemChanged)
 
 DECLARE_EVENT_OneParam(UBackpackComponent, FOnServerPickupItemFailture, AItemBase*)
 
+
+//TODO 背包设计 - 多人网络改造
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), BlueprintType )
 class UNREALGAME_API UBackpackComponent : public UActorComponent
 {
@@ -129,6 +131,16 @@ public:
 	void GetItems(TArray<FPositionItem>* PositionItems, FString Id);
 
 	/*
+	 * @description: GetItems - 根据背包ID获取指定的背包物品
+	 * @param PositionItems - 用于存储背包物品的数组
+	 *	@param BackpackId - 背包 ID
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 20:07:43
+	 */
+	void GetItemsByBackpackId(TArray<FBackpackItemInfo>& BackpackItemInfos, FString BackpackId);
+	/*
 	 * @description: UpdateItemNum - 根据背包Id更新物品数量
 	 * @param BackpackId - 物品在背包中的唯一 Id，同等于数组在背包数组中的下标索引
 	 * @param Num - 物品数量
@@ -137,14 +149,14 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:22
 	 */
-	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端根据背包Id更新物品数量")
-	void CC_UpdateItemNum(const FString& BackpackId, int Num);
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端根据背包Id更新物品")
+	void CC_UpdateItem(const FString& BackpackId, FBackpackItemInfo NewItemInfo);
 
-	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器根据背包Id更新物品数量")
-	void SC_UpdateItemNum(const FString& BackpackId, int Num, float ClientUpdateTime);
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器根据背包Id更新物品")
+	void SC_UpdateItem(const FString& BackpackId, FBackpackItemInfo NewItemInfo, float ClientUpdateTime);
 
-	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="客户端作为服务器根据背包Id更新物品数量")
-	void SNC_UpdateItemNum(const FString& BackpackId, int Num);
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="客户端作为服务器根据背包Id更新物品")
+	void SNC_UpdateItem(const FString& BackpackId, FBackpackItemInfo NewItemInfo);
 	
 	/*
 	 * @description: TryRemoveItem - 尝试移除背包物品

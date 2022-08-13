@@ -28,6 +28,7 @@ struct FEquipmentInfo : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="装备类")
 	TSubclassOf<class AWeapon> EquipmentBase;
 };
+
 USTRUCT(BlueprintType)
 struct FProjectileData : public FTableRowBase
 {
@@ -38,21 +39,6 @@ struct FProjectileData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, DisplayName="弹壳类")
 	TSubclassOf<class ACasing> CasingClass;
-};
-
-USTRUCT(BlueprintType)
-struct FPickupObjectData
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(BlueprintReadOnly, DisplayName="可拾取Actor")
-	AActor* PickableActor;
-
-	UPROPERTY(BlueprintReadOnly, DisplayName="处理状态")
-	EPickableObjectState HandleState;
-
-	UPROPERTY(BlueprintReadOnly, DisplayName="处理状态")
-	EPickableObjectState TargetState;
 };
 
 USTRUCT()

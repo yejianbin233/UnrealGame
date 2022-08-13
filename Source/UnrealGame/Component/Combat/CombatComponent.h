@@ -31,7 +31,6 @@ class UNREALGAME_API UCombatComponent : public UActorComponent
 	GENERATED_BODY()
 	
 	friend class ABlasterCharacter;
-
 	
 public:
 
@@ -74,10 +73,21 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器装备")
 	void SC_Equipment(class AItemBase* EquipItem, float EquipTime);
 
-	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="装备")
+	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="服务器作为客户端装备")
 	void SNC_Equipment(AItemBase* Item);
 
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器取消装备")
+	void CC_UnEquipment();
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器取消装备")
+	void SC_UnEquipment();
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Weapon", DisplayName="多播(除了客户端)取消装备")
+	void NM_UnEquipmentExceptClient();
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category="Weapon", DisplayName="多播取消装备")
+	void NM_UnEquipment();
+	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="服务器作为客户端取消装备")
 	void SNC_UnEquipment();
+	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="取消装备")
+	void UnEquipment();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="服务器瞄准")
 	void SC_Aim(bool bToAim);
@@ -90,9 +100,6 @@ public:
 
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="客户端开火")
 	void CC_Fire();
-	
-	// UFUNCTION(Server, Reliable, BlueprintCallable, Category="Weapon Aim", DisplayName="服务器开火")
-	// void SC_Fire(float ClientFireTime);
 
 	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端开火")
 	void SNC_Fire();
@@ -115,7 +122,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Weapon Aim", DisplayName="服务器作为客户端装填子弹")
 	void SNC_Reload();
 	
-	// void FireButtonPressed(bool bPressed);
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="获取玩家装备状态")
 	EPlayerEquipState GetPlayerEquipState();
 	

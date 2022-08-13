@@ -168,12 +168,8 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
-	DOREPLIFETIME(ABlasterCharacter, PickableObjectData);
-	
-	// DOREPLIFETIME(ABlasterCharacter, bHasPickableObject);
 	
 	DOREPLIFETIME(ABlasterCharacter, bIsJump);
 	DOREPLIFETIME(ABlasterCharacter, bElimmed);
@@ -277,24 +273,6 @@ void ABlasterCharacter::Tick(float DeltaTime)
 	HighLightPickableObject();
 }
 
-void ABlasterCharacter::PlayFireMontage(bool bIsAiming)
-{
-	// if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
-	// {
-	// 	return;
-	// }
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-	if (AnimInstance && FireWeaponMontage)
-	{
-		AnimInstance->Montage_Play(FireWeaponMontage);
-		FName SectionName;
-		SectionName = bIsAiming ? FName("RifleHip"):FName("RifleAim");
-		AnimInstance->Montage_JumpToSection(SectionName);
-	}
-}
-
 void ABlasterCharacter::PlayHitReactMontage()
 {
 
@@ -304,33 +282,6 @@ void ABlasterCharacter::PlayHitReactMontage()
 		AnimInstance->Montage_Play(HitReactionMontage);
 		FName SectionName("FromFront");
 		
-		AnimInstance->Montage_JumpToSection(SectionName);
-	}
-}
-
-void ABlasterCharacter::PlayReloadMontage()
-{
-	// if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
-	// {
-	// 	return;
-	// }
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-	if (AnimInstance && ReloadMontage)
-	{
-		AnimInstance->Montage_Play(ReloadMontage);
-		FName SectionName;
-
-		// switch (Combat->EquippedWeapon->GetWeaponType())
-		// {
-		// 	case EWeaponType::EWT_AssaultRifle:
-		// 		SectionName = FName("Rifle");
-		// 		break;
-		// 	
-		// 	default:
-		// 		break;
-		// }
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
@@ -645,7 +596,7 @@ void ABlasterCharacter::SC_Pickup_Implementation(AItemBase* PickupedUpItem, floa
 	}
 }
 
-void ABlasterCharacter::Equipment()
+void ABlasterCharacter::EquipButtonPressed()
 {
 	AItemBase* PickupItem = TracePickableObject(EPickableObjectState::Pickup);
 	if (PickupItem)
@@ -655,18 +606,15 @@ void ABlasterCharacter::Equipment()
 	}
 }
 
-void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
+void ABlasterCharacter::UnEquipButtonPressed()
 {
-
-	// 当碰撞重叠时，设置 OverlappingWeapon 并调整可视性
-	if (OverlappingWeapon)
+	if (HasAuthority())
 	{
-		// OverlappingWeapon->ShowPickupWidget(true);
+		GetCombatComponent()->SNC_UnEquipment();
 	}
-	// 当碰撞重叠结束时，OverlappingWeapon 被设置为 nullptr，那么可以使用 LastWeapon 来设置 OverlappingWeapon 不可视
-	else if (LastWeapon)
+	else
 	{
-		// LastWeapon->ShowPickupWidget(false);		
+		GetCombatComponent()->CC_UnEquipment();
 	}
 }
 
@@ -1040,20 +988,20 @@ AItemBase* ABlasterCharacter::TracePickableObject(EPickableObjectState PickableO
 // TODO 武器显示控件
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
-	if (!Weapon && OverlappingWeapon)
-	{
-		// OverlappingWeapon->ShowPickupWidget(false);
-	}
-	
-	OverlappingWeapon = Weapon;
-	// 是否是本地玩家控制
-	if (IsLocallyControlled())
-	{
-		if (OverlappingWeapon)
-		{
-			// OverlappingWeapon->ShowPickupWidget(true);
-		}
-	}
+	// if (!Weapon && OverlappingWeapon)
+	// {
+	// 	// OverlappingWeapon->ShowPickupWidget(false);
+	// }
+	//
+	// OverlappingWeapon = Weapon;
+	// // 是否是本地玩家控制
+	// if (IsLocallyControlled())
+	// {
+	// 	if (OverlappingWeapon)
+	// 	{
+	// 		// OverlappingWeapon->ShowPickupWidget(true);
+	// 	}
+	// }
 }
 
 bool ABlasterCharacter::IsWeaponEquipped()
@@ -1146,7 +1094,12 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		if (EIA_Equipment)
 		{
-			EInputComponent->BindAction(EIA_Equipment, ETriggerEvent::Triggered, this, &ThisClass::Equipment);
+			EInputComponent->BindAction(EIA_Equipment, ETriggerEvent::Triggered, this, &ABlasterCharacter::EquipButtonPressed);
+		}
+
+		if (EIA_UnEquipment)
+		{
+			EInputComponent->BindAction(EIA_UnEquipment, ETriggerEvent::Triggered, this, &ABlasterCharacter::UnEquipButtonPressed);
 		}
 
 		if (EIA_Jump)

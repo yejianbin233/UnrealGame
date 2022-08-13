@@ -508,9 +508,21 @@ void UBackpackComponent::GetItems(TArray<FPositionItem>* PositionItems, FString 
 	}
 }
 
-void UBackpackComponent::CC_UpdateItemNum_Implementation(const FString& BackpackId, int Num)
+void UBackpackComponent::GetItemsByBackpackId(TArray<FBackpackItemInfo>& BackpackItemInfos, FString BackpackId)
 {
-	if (Num == 0)
+	for(int Index=0; Index < Items.Num(); Index++)
+	{
+		FBackpackItemInfo IndexItem = Items[Index];
+		if (!IndexItem.BackpackId.IsEmpty() && IndexItem.BackpackId.Equals(BackpackId))
+		{
+			BackpackItemInfos.Add(IndexItem);
+		}
+	}
+}
+
+void UBackpackComponent::CC_UpdateItem_Implementation(const FString& BackpackId, FBackpackItemInfo NewItemInfo)
+{
+	if (NewItemInfo.Num == 0)
 	{
 		// 当数量为 0 时，删除
 		CC_TryRemoveItem(BackpackId);
@@ -520,7 +532,8 @@ void UBackpackComponent::CC_UpdateItemNum_Implementation(const FString& Backpack
 	{
 		if (Items[I].BackpackId == BackpackId)
 		{
-			Items[I].Num = Num;
+			Items[I].Num = NewItemInfo.Num;
+			Items[I].LongRangeWeaponEquipAmmoNum = NewItemInfo.LongRangeWeaponEquipAmmoNum;
 			break;
 		}
 	}
@@ -532,9 +545,9 @@ void UBackpackComponent::CC_UpdateItemNum_Implementation(const FString& Backpack
 	OnClientBackpackItemChanged.Broadcast(ClientUpdateTime);
 }
 
-void UBackpackComponent::SC_UpdateItemNum_Implementation(const FString& BackpackId, int Num, float ClientUpdateTime)
+void UBackpackComponent::SC_UpdateItem_Implementation(const FString& BackpackId, FBackpackItemInfo NewItemInfo, float ClientUpdateTime)
 {
-	if (Num == 0)
+	if (NewItemInfo.Num == 0)
 	{
 		// 当数量为 0 时，删除
 		SC_TryRemoveItem(BackpackId, ClientUpdateTime);
@@ -545,7 +558,8 @@ void UBackpackComponent::SC_UpdateItemNum_Implementation(const FString& Backpack
 	{
 		if (Items[I].BackpackId == BackpackId)
 		{
-			Items[I].Num = Num;
+			Items[I].Num = NewItemInfo.Num;
+			Items[I].LongRangeWeaponEquipAmmoNum = NewItemInfo.LongRangeWeaponEquipAmmoNum;
 			break;
 		}
 	}
@@ -553,9 +567,9 @@ void UBackpackComponent::SC_UpdateItemNum_Implementation(const FString& Backpack
 	OnServerReportBackpackItemChanged.Broadcast(ClientUpdateTime);
 }
 
-void UBackpackComponent::SNC_UpdateItemNum(const FString& BackpackId, int Num)
+void UBackpackComponent::SNC_UpdateItem(const FString& BackpackId, FBackpackItemInfo NewItemInfo)
 {
-	if (Num == 0)
+	if (NewItemInfo.Num == 0)
 	{
 		// 当数量为 0 时，删除
 		SNC_TryRemoveItem(BackpackId);
@@ -565,7 +579,8 @@ void UBackpackComponent::SNC_UpdateItemNum(const FString& BackpackId, int Num)
 	{
 		if (Items[I].BackpackId == BackpackId)
 		{
-			Items[I].Num = Num;
+			Items[I].Num = NewItemInfo.Num;
+			Items[I].LongRangeWeaponEquipAmmoNum = NewItemInfo.LongRangeWeaponEquipAmmoNum;
 			break;
 		}
 	}
@@ -666,7 +681,6 @@ void UBackpackComponent::CC_TryRemoveItem_Implementation(const FString& Backpack
 		float RemoveTime = GetWorld()->GetTimeSeconds();
 		OnClientBackpackItemChanged.Broadcast(RemoveTime);
 	}
-	
 }
 
 

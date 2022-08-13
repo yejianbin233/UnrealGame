@@ -79,6 +79,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="装备")
 	TObjectPtr<UInputAction> EIA_Equipment;
 
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="取消装备")
+	TObjectPtr<UInputAction> EIA_UnEquipment;
+
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="跳跃")
 	TObjectPtr<UInputAction> EIA_Jump;
 
@@ -118,9 +121,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
 	bool bHasPickableObject;
-
-	UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取物品数据")
-	FPickupObjectData PickableObjectData;
 
 	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取的物品数组")
 	TArray<AItemBase*> PickableObjects;
@@ -210,23 +210,11 @@ private:
 	class UBoxComponent* Right_Foot_BoxComponent;
 	
 	/* 玩家角色滞后补偿相关设置 */
-
-	// TODO - 武器，和战斗组件
-	// 武器
-	UPROPERTY(ReplicatedUsing="OnRep_OverlappingWeapon", DisplayName="武器")
-	class AWeapon* OverlappingWeapon;
-
+	
 	// 战斗组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Component", DisplayName="战斗组件", meta=(AllowPrivateAccess=true))
 	class UCombatComponent* CombatCopmponent;
 	
-	// 开火蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* FireWeaponMontage;
-
-	// 重新装弹蒙太奇
-	UPROPERTY(EditAnywhere, Category="Combat")
-	UAnimMontage* ReloadMontage;
 	// 被击打动画蒙太奇
 	UPROPERTY(EditAnywhere, Category="Combat")
 	UAnimMontage* HitReactionMontage;
@@ -266,7 +254,6 @@ private:
 
 	UPROPERTY(EditAnywhere, DisplayName="溶解曲线")
 	UCurveFloat* DissolveCurve;
-	
 
 	// 动态材质实例
 	UPROPERTY(VisibleAnywhere, Category="Elim")
@@ -275,12 +262,11 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="Elim")
 	UMaterialInstance* DissolverMaterialInstance;
 
+	UPROPERTY()
 	class ABlasterPlayerState* BlasterPlayerState;
 
+	UPROPERTY()
 	class ABlasterPlayerController* BlasterPlayerController;
-
-	
-
 
 	/* 
 	 * 控制鼠标转向移动速度、鼠标上下视角移动速度 可以"弃用"，因为 PlayerController 原本就有属性控制，诸如：InputPitchScale_DEPRECATED 等。
@@ -355,15 +341,11 @@ private:
 	UPROPERTY(EditAnywhere, Category="Pickup Properties", meta=(AllowPrivateAccess=true), DisplayName="可拾取检测物品类型")
 	TEnumAsByte<ETraceTypeQuery> PickableTraceTypeQuery;
 
-	// UPROPERTY(ReplicatedUsing="CurrentPickableActorInter", BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取物品")
-	// AActor* CurrentPickableActor;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess=true), DisplayName="可交互的距离")
 	float InteractiveTraceDistance = 100;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Interactive", meta=(AllowPrivateAccess=true), DisplayName="可交互的检测对象")
 	TEnumAsByte<ETraceTypeQuery> InteractiveTraceType;
-
 	
 public:
 
@@ -383,15 +365,8 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	/* 动画蒙太奇 */
-	// 播放开火动画蒙太奇
-	void PlayFireMontage(bool bIsAiming);
-
 	// 播放受击动画蒙太奇
 	void PlayHitReactMontage();
-
-	// 播放重装弹蒙太奇
-	void PlayReloadMontage();
 
 	// 播放死亡动画蒙太奇
 	UFUNCTION(NetMulticast, Reliable)
@@ -453,7 +428,12 @@ protected:
 	void JumpButtonPressed();
 
 	// 装备武器
+	UFUNCTION(Category="Equipment")
 	void EquipButtonPressed();
+
+	// 取消装备武器
+	UFUNCTION(Category="Equipment")
+	void UnEquipButtonPressed();
 
 	// 蹲伏
 	void CrouchButtonPressed();
@@ -508,12 +488,6 @@ protected:
 	UFUNCTION(Server, Reliable, Category="Pickup", DisplayName="服务器拾取")
 	void SC_Pickup(AItemBase* PickupedUpItem, float BackpackItemChangedTime);
 
-	UFUNCTION(Category="Equipment")
-	void Equipment();
-
-	// UFUNCTION(Server, Reliable, Category="Equipment")
-	// void SC_Equipment();
-	
 	/* 玩家输入处理函数 */
 
 	// 收到伤害处理方法
@@ -549,9 +523,6 @@ private:
 
 	UFUNCTION()
 	void OnRep_Health();
-
-	UFUNCTION()
-	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
 	/*
 	 * @description: 更新玩家的速度方向 - 八方向

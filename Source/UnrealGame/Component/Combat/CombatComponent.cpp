@@ -92,8 +92,6 @@ void UCombatComponent::SNC_Equipment(AItemBase* Item)
 	
 	AWeapon* EquipmentWeapon = GetWorld()->SpawnActor<AWeapon>(EquipmentInfo.EquipmentBase, Location, FRotator(0), EquipmentWeaponSpawnParameters);
 
-	UE_LOG(LogTemp, Warning, TEXT("123"));
-	ABlasterCharacter::DisplayRole(EquipmentWeapon->GetLocalRole());
 	if (EquipmentWeapon)
 	{
 		EquipmentWeapon->Init(PlayerCharacter);
@@ -114,12 +112,46 @@ void UCombatComponent::SNC_Equipment(AItemBase* Item)
 	}
 }
 
+void UCombatComponent::CC_UnEquipment_Implementation()
+{
+	// 更新背包远程武器子弹数量
+	UnEquipment();
+	SC_UnEquipment();
+}
+
+void UCombatComponent::SC_UnEquipment_Implementation()
+{
+	NM_UnEquipmentExceptClient();
+}
+
+void UCombatComponent::NM_UnEquipmentExceptClient_Implementation()
+{
+	if (PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+	{
+		return;
+	}
+	UnEquipment();
+}
+
+void UCombatComponent::NM_UnEquipment_Implementation()
+{
+	UnEquipment();
+}
+
 void UCombatComponent::SNC_UnEquipment()
 {
 	// 不装备 / 切换武器，将武器自身数据保存到背包武器对应的属性上，如枪填装了子弹，那么将数量更新到背包的枪物品的数量上。
+	NM_UnEquipment();
+}
+
+void UCombatComponent::UnEquipment()
+{
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		// 取消装备
+		EquippedWeapon->Equipment(false);
+		EquippedWeapon->Destroy();
+		EquippedWeapon = nullptr;
 	}
 }
 
