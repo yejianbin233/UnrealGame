@@ -57,3 +57,41 @@ enum class EProjectileHitMode : uint8
 	// 实时 - 在服务器的生成的子弹采用实时碰撞检测处理
 	RealTime UMETA(DisplayName="实时"),
 };
+
+UENUM(BlueprintType)
+enum class ECameraViewPointMode : uint8
+{
+	// 第一人称视点
+	FirstPerson UMETA(DisplayName="第一人称视点"),
+
+	// 第三人称视点
+	ThreePerson UMETA(DisplayName="第三人称视点"),
+
+	Debug_RightPoint UMETA(DisplayName="调试模式右视点"),
+
+	Debug_TopPoint UMETA(DisplayName="调试模式顶部视点"),
+};
+
+UENUM(BlueprintType)
+enum class ECameraShotMode : uint8
+{
+	// 标准截图
+	Shot UMETA(DisplayName="标准截图"),
+
+	// 高清截图
+	HighResShot UMETA(DisplayName="高清截图"),
+
+	// 自定义截图
+	CustomShot UMETA(DisplayName="自定义截图"),
+};
+
+UENUM(BlueprintType)
+enum class EPlayerInputMappingContent : uint8
+{
+	// 标准截图
+	Shooter UMETA(DisplayName="射手模式输入上下文"),
+
+	// 高清截图
+	Camera UMETA(DisplayName="摄像机模式输入上下文"),
+
+};

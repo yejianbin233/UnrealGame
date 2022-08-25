@@ -147,14 +147,14 @@ void AItemBase::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent
 		ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 		if (BlasterCharacter)
 		{
-			BlasterCharacter->PickableObjects.Add(this);
+			BlasterCharacter->GetPickableObjects().Add(this);
 
 			ABlasterCharacter::DisplayRole(GetLocalRole());
 			float bIsShow = AConsoleVariableActor::GetEnterOrLeavePickableItemLog();
 			if (bIsShow)
 			{
 				int32 I = 1;
-				for (auto Item : BlasterCharacter->PickableObjects)
+				for (auto Item : BlasterCharacter->GetPickableObjects())
 				{
 					UE_LOG(LogTemp, Log, TEXT("Add Item(%d)：%s"), I, *Item->GetName());
 					I++;
@@ -172,7 +172,7 @@ void AItemBase::OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent,
 		ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor);
 		if (BlasterCharacter)
 		{
-			BlasterCharacter->PickableObjects.Remove(this);
+			BlasterCharacter->GetPickableObjects().Remove(this);
 
 			ABlasterCharacter::DisplayRole(GetLocalRole());
 			float bIsShow = AConsoleVariableActor::GetEnterOrLeavePickableItemLog();

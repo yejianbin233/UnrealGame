@@ -12,7 +12,7 @@ public class UnrealGame : ModuleRules
 			, "ChaosVehicles", "ChaosVehiclesCore","ChaosVehiclesEngine","ChaosVehiclesEditor"
 			, "DataRegistry"});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "EnhancedInput", "GameplayAbilities", "GameplayTags", "GameplayTasks" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

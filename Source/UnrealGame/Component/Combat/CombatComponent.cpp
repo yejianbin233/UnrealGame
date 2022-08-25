@@ -57,7 +57,7 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UCombatComponent::SC_Equipment_Implementation(AItemBase* EquipItem, float EquipTime)
 {
-	for (auto PickableObject : PlayerCharacter->PickableObjects)
+	for (auto PickableObject : PlayerCharacter->GetPickableObjects())
 	{
 		if (PickableObject == EquipItem)
 		{

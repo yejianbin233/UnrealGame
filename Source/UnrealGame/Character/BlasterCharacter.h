@@ -12,11 +12,14 @@
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/Enums/WeaponTypes.h"
 #include "UnrealGame/Backpack/ItemInfoObject.h"
+#include "UnrealGame/Component/Camera/UnrealCameraComponent.h"
 #include "UnrealGame/Interfaces/InteractWithCrosshairsInterface.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "BlasterCharacter.generated.h"
 
 
+class USpringArmComponent;
+class UCameraComponent;
 /*
  * FVelocityBlend 根据速度来判断方向混合量
  */
@@ -117,27 +120,30 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="交互")
 	TObjectPtr<UInputAction> EIA_Interactive;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", DisplayName="打开摄像机")
+	TObjectPtr<UInputAction> EIA_OpenCamera;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", AdvancedDisplay, DisplayName="进入摄像机调试模式")
+	TObjectPtr<class UInputAction> EIA_EnterDebugMode;
+
+	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", AdvancedDisplay, DisplayName="退出摄像机调试模式")
+	TObjectPtr<class UInputAction> EIA_LeaveDebugMode;
 	/* Enhanced Input  */
-
-	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品")
-	bool bHasPickableObject;
-
-	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取的物品数组")
-	TArray<AItemBase*> PickableObjects;
 	
 private:
 
 	/*
 	 * 组件
 	 */
-	// 弹簧臂组件
-	UPROPERTY(EditAnywhere, Category = "Camera", DisplayName="弹簧臂组件")
-	class USpringArmComponent* CameraBoom;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Camera", DisplayName="摄像机组件", meta=(AllowPrivateAccess=true))
+	class UUnrealCameraComponent* PlayerCameraComponent;
 
-	// 摄像机组件
-	UPROPERTY(EditAnywhere, Category = "Camera", DisplayName="摄像机组件")
-	class UCameraComponent* FollowCamera;
+	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品", meta=(AllowPrivateAccess=true))
+	bool bHasPickableObject;
 
+	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取的物品数组", meta=(AllowPrivateAccess=true))
+	TArray<AItemBase*> PickableObjects;
 	// 头顶控件组件
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true), DisplayName="头部控件组件")
 	class UWidgetComponent* OverheadWidget;
@@ -349,9 +355,6 @@ private:
 	
 public:
 
-	UFUNCTION()
-	void CurrentPickableActorInter();
-	
 	// Sets default values for this character's properties
 	ABlasterCharacter();
 
@@ -464,7 +467,6 @@ protected:
 
 	// 打开或关闭背包
 	void OpenOrCloseBackpack();
-
 	/*
 	 * @description: RotateDragItemWidget - 用于处理用户输入，旋转正在拖动的物品控件
 	 * @author: yejianbin
@@ -600,8 +602,9 @@ public:
 
 	FVector GetHitTarget() const;
 
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return PlayerCameraComponent->GetCameraComponent(); }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return PlayerCameraComponent->GetSpringArmComponent(); }
+	FORCEINLINE UUnrealCameraComponent* GetPlayerCameraComponent() const { return PlayerCameraComponent; }
 
 	/* Character Properties*/
 	
@@ -620,7 +623,7 @@ public:
 
 	FORCEINLINE UPlayerLagCompensationComponent* GetPlayerLagCompensationComponent() const { return PlayerLagCompensationComponent; };
 
-
+	FORCEINLINE TArray<AItemBase*> GetPickableObjects() const { return PickableObjects; };
 
 
 

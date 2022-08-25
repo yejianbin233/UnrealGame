@@ -27,16 +27,10 @@
 #include "Components/BoxComponent.h"
 #include "UnrealGame/Backpack/BackpackLagCompensationComponent.h"
 #include "UnrealGame/Backpack/ItemBase.h"
+#include "UnrealGame/Component/Camera/UnrealCameraComponent.h"
 #include "UnrealGame/Component/LagCompensation/PlayerLagCompensationComponent.h"
 #include "UnrealGame/ConsoleVariable/ConsoleVariableActor.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
-#include "UnrealGame/Struct/UnrealGameStruct.h"
-
-
-void ABlasterCharacter::CurrentPickableActorInter()
-{
-	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Black, TEXT("123"));
-}
 
 ABlasterCharacter::ABlasterCharacter()
 {
@@ -45,14 +39,9 @@ ABlasterCharacter::ABlasterCharacter()
 
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(GetMesh());
-	CameraBoom->TargetArmLength = 600.0f;
+	PlayerCameraComponent = CreateDefaultSubobject<UUnrealCameraComponent>(TEXT("PlayerCameraComponent"));
+	PlayerCameraComponent->SetupAttachment(GetMesh());
 	
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	// 附加到弹簧臂的末端 Socket
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-
 	// 创建头顶内容控件
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
@@ -198,8 +187,8 @@ void ABlasterCharacter::Interactive_Implementation()
 		return;
 	}
 	// 1. 先进行射线检测
-	FVector CameraLocation = FollowCamera->GetComponentLocation();
-	FVector CameraForwardDirectional = FollowCamera->GetForwardVector();
+	FVector CameraLocation = PlayerCameraComponent->GetCameraComponent()->GetComponentLocation();
+	FVector CameraForwardDirectional = PlayerCameraComponent->GetCameraComponent()->GetForwardVector();
 	FVector CameraTraceEndLocation = CameraLocation + (CameraForwardDirectional * InteractiveTraceDistance);
 	FHitResult InteractiveTraceResult;
 	FCollisionQueryParams CollisionQueryParams;
@@ -625,24 +614,24 @@ void ABlasterCharacter::HideCameraIfCharacterClose()
 		return;
 	}
 
-	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
-	{
-		GetMesh()->SetVisibility(false);
-		// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		// {
-		// 	// 仅对拥有者不可见
-		// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
-		// }
-	}
-	else
-	{
-		GetMesh()->SetVisibility(true);
-		// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
-		// {
-		// 	// 仅对拥有者不可见
-		// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		// }
-	}
+	// if ((PlayerCameraComponent->GetCameraComponent()->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	// {
+	// 	GetMesh()->SetVisibility(false);
+	// 	// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+	// 	// {
+	// 	// 	// 仅对拥有者不可见
+	// 	// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+	// 	// }
+	// }
+	// else
+	// {
+	// 	GetMesh()->SetVisibility(true);
+	// 	// if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+	// 	// {
+	// 	// 	// 仅对拥有者不可见
+	// 	// 	Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+	// 	// }
+	// }
 }
 
 void ABlasterCharacter::OnRep_Health()
@@ -749,8 +738,8 @@ void ABlasterCharacter::UpdateMovementSpeedLevel()
 void ABlasterCharacter::UpdateMovementRotation()
 {
 
-	FollowCamera->bUsePawnControlRotation = false;
-	CameraBoom->bUsePawnControlRotation = true;
+	PlayerCameraComponent->GetCameraComponent()->bUsePawnControlRotation = false;
+	PlayerCameraComponent->GetSpringArmComponent()->bUsePawnControlRotation = true;
 
 	if(MovementDirection == EMovementDirection::EMD_Idle)
 	{
@@ -843,7 +832,7 @@ void ABlasterCharacter::HighLightPickableObject()
 			{
 				WorldLocation = GetFollowCamera()->GetComponentLocation();
 
-				WorldDirection = CameraBoom->GetComponentLocation() - WorldLocation;
+				WorldDirection = PlayerCameraComponent->GetSpringArmComponent()->GetComponentLocation() - WorldLocation;
 				WorldDirection.Normalize();
 			}
 			
@@ -894,7 +883,7 @@ AItemBase* ABlasterCharacter::TracePickableObject(EPickableObjectState PickableO
 			{
 				WorldLocation = GetFollowCamera()->GetComponentLocation();
 
-				WorldDirection = CameraBoom->GetComponentLocation() - WorldLocation;
+				WorldDirection = PlayerCameraComponent->GetSpringArmComponent()->GetComponentLocation() - WorldLocation;
 				WorldDirection.Normalize();
 			}
 			
@@ -1040,7 +1029,7 @@ FVector ABlasterCharacter::GetHitTarget() const
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	
 	// PlayerInputComponent->BindAxis("MoveForward", this, &ABlasterCharacter::MoveForward);
 	// PlayerInputComponent->BindAxis("MoveRight", this, &ABlasterCharacter::MoveRight);
 	// PlayerInputComponent->BindAxis("Turn", this, &ABlasterCharacter::Turn);
@@ -1063,6 +1052,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 			Subsystem->ClearAllMappings();
 
 			Subsystem->AddMappingContext(ShootGameInputMappingContext, 0);
+
+			
 		}
 	}
 
@@ -1175,6 +1166,11 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		if (EIA_Interactive)
 		{
 			EInputComponent->BindAction(EIA_Interactive, ETriggerEvent::Triggered, this, &ThisClass::Interactive);
+		}
+
+		if (EIA_OpenCamera)
+		{
+			EInputComponent->BindAction(EIA_OpenCamera, ETriggerEvent::Triggered, PlayerCameraComponent, &UUnrealCameraComponent::OpenCamera);
 		}
 	}
 	

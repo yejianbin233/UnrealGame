@@ -2,6 +2,8 @@
 
 
 #include "UnrealGame/PlayerController/BlasterPlayerController.h"
+
+#include "EnhancedInputSubsystems.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/GameMode.h"
@@ -15,6 +17,12 @@
 #include "UnrealGame/HUD/BlasterHUD.h"
 #include "UnrealGame/HUD/CharacterOverlay.h"
 
+ABlasterPlayerController::ABlasterPlayerController(const FObjectInitializer& ObjectInitializer)
+{
+	PlayerInputMappingContents.Add(EPlayerInputMappingContent::Shooter);
+	PlayerInputMappingContents.Add(EPlayerInputMappingContent::Camera);
+}
+
 void ABlasterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -24,9 +32,6 @@ void ABlasterPlayerController::BeginPlay()
 	BlasterHUD = Cast<ABlasterHUD>(GetHUD());
 
 	ServerCheckMatchState();
-
-	
-	
 }
 
 void ABlasterPlayerController::Tick(float DeltaTime)
@@ -368,6 +373,47 @@ void ABlasterPlayerController::OnRep_MatchState()
 	else if(MatchState == MatchState::Cooldown)
 	{
 		HandleCooldown();
+	}
+}
+
+void ABlasterPlayerController::ConsoleCreateShotTexture()
+{
+	UUnrealCameraComponent::CreateShotTexture();
+}
+
+void ABlasterPlayerController::ConsoleSwitchInputMappingContext(int32 Index)
+{
+	if (Index < 0 || Index >= PlayerInputMappingContents.Num())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("下标越界，应输入[0, %d)的整数"), PlayerInputMappingContents.Num()));
+		return;
+	}
+	if (ABlasterCharacter* PlayerCharacter = Cast<ABlasterCharacter>(GetPawn()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(this->GetLocalPlayer()))
+		{
+			Subsystem->ClearAllMappings();
+
+			EPlayerInputMappingContent IndexContent = PlayerInputMappingContents[Index];
+			switch (IndexContent)
+			{
+				case EPlayerInputMappingContent::Shooter :
+					{
+						GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, FString::Printf(TEXT("切换到射手输入模式")));
+						Subsystem->AddMappingContext(PlayerCharacter->ShootGameInputMappingContext, 0);
+						break;
+					}
+				case EPlayerInputMappingContent::Camera :
+					{
+						GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, FString::Printf(TEXT("切换到摄像机玩家输入模式")));
+						Subsystem->AddMappingContext(PlayerCharacter->GetPlayerCameraComponent()->CameraModeInputMappingContext, 0);
+						break;
+					}
+				default:
+						break;
+					;
+			}
+		}
 	}
 }
 

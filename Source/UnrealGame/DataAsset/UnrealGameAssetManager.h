@@ -16,6 +16,7 @@ class UNREALGAME_API UUnrealGameAssetManager : public UAssetManager
 public:
 	// 定义资产类型
 	inline static const FPrimaryAssetType LongRangeWeaponItemType = FPrimaryAssetType(FName("LongRangeWeapon"));
+	inline static const FPrimaryAssetType ShotTextureItemType = FPrimaryAssetType(FName("ShotTexture"));
 
 public:
 

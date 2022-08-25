@@ -29,5 +29,7 @@ public:
 	static float GetClientServerTimeSync();
 	static float GetDetectPickableObjectDebug();
 	static float GetEnterOrLeavePickableItemLog();
+	static float GetEnterCameraDebugMode();
+	static float GetShowCameraDebugLog();
 
 };

@@ -6,6 +6,7 @@
 #include "UnrealPlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
+enum class EPlayerInputMappingContent : uint8;
 /**
  * 
  */
@@ -16,6 +17,8 @@ class UNREALGAME_API ABlasterPlayerController : public AUnrealPlayerController
 
 
 public:
+
+	ABlasterPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -136,4 +139,15 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float HighPingThreshold = 50.0f;
+
+	// Debug
+	TArray<EPlayerInputMappingContent> PlayerInputMappingContents;
+
+public:
+
+	UFUNCTION(Exec, Category="Shot", DisplayName="控制台执行创建摄像纹理")
+	void ConsoleCreateShotTexture();
+
+	UFUNCTION(Exec, Category="Player Input", DisplayName="控制台切换输入映射上下文")
+	void ConsoleSwitchInputMappingContext(int32 Index);
 };

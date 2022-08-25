@@ -89,6 +89,33 @@ float AConsoleVariableActor::GetEnterOrLeavePickableItemLog()
 	return CVarEnterOrLeavePickableItemLog.GetValueOnGameThread();
 }
 
+static TAutoConsoleVariable<int32> CVarEnterCameraDebugMode(
+	TEXT("u.EnterCameraDebugMode"),
+	0,
+	TEXT("是否进入摄像机 Debug 模式，可旋转、拉伸摄像机视口")
+	TEXT("0：不进入，默认")
+	TEXT("1：进入"),
+	ECVF_Default
+);
+
+float AConsoleVariableActor::GetEnterCameraDebugMode()
+{
+	return CVarEnterCameraDebugMode.GetValueOnGameThread();
+}
+
+static TAutoConsoleVariable<int32> CVarShowCameraDebugLog(
+	TEXT("u.ShowCameraDebugLog"),
+	0,
+	TEXT("是否显示摄像机 Debug 日志")
+	TEXT("0：不显式，默认")
+	TEXT("1：显示"),
+	ECVF_Default
+);
+
+float AConsoleVariableActor::GetShowCameraDebugLog()
+{
+	return CVarShowCameraDebugLog.GetValueOnGameThread();
+}
 
 
 
