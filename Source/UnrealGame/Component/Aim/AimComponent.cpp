@@ -16,7 +16,6 @@ UAimComponent::UAimComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// AimStartedInterpTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("开始瞄准插值时间轴组件"));
 	AimEndedInterpTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("结束瞄准插值时间轴组件"));
 	AimEndedInterpTimelineComponent->RegisterComponent();
 	

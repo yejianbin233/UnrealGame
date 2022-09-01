@@ -4,29 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "UnrealGame/Interfaces/UnrealInterface.h"
 #include "InteractiveDoor.generated.h"
-
-
-UINTERFACE(MinimalAPI, Blueprintable)
-class UInteractiveInterface : public UInterface
-{
-	GENERATED_BODY()
-};
-
-class UNREALGAME_API IInteractiveInterface
-{    
-	GENERATED_BODY()
-
-public:
-	/** 在此处添加接口函数声明 */
-	virtual void Interactive();
-};
 
 UCLASS()
 class UNREALGAME_API AInteractiveDoor : public AActor, public IInteractiveInterface
 {
 	GENERATED_BODY()
-
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Component", DisplayName="门框组件")

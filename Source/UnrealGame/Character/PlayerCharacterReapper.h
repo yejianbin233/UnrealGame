@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/Actor.h"
+#include "UnrealGame/Component/LagCompensation/PlayerLagCompensationComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
+#include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "PlayerCharacterReapper.generated.h"
 
-struct FPlayerCharacterLagCompensationData;
-struct FBoxData;
 UCLASS()
 class UNREALGAME_API AReapperCollisionBox : public AActor
 {

@@ -13,7 +13,6 @@
 #include "UnrealGame/Enums/WeaponTypes.h"
 #include "UnrealGame/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Component/Camera/UnrealCameraComponent.h"
-#include "UnrealGame/Interfaces/InteractWithCrosshairsInterface.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "BlasterCharacter.generated.h"
 
@@ -45,7 +44,7 @@ public:
 };
 
 UCLASS()
-class UNREALGAME_API ABlasterCharacter : public ACharacter, public IInteractWithCrosshairsInterface
+class UNREALGAME_API ABlasterCharacter : public ACharacter
 {
 	GENERATED_BODY()
 

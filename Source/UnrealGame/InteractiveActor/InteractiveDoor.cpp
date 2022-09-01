@@ -3,11 +3,6 @@
 
 #include "InteractiveDoor.h"
 
-void IInteractiveInterface::Interactive()
-{
-	// Interactive() 接口默认实现
-}
-
 // Sets default values
 AInteractiveDoor::AInteractiveDoor()
 {

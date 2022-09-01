@@ -93,5 +93,44 @@ enum class EPlayerInputMappingContent : uint8
 
 	// 高清截图
 	Camera UMETA(DisplayName="摄像机模式输入上下文"),
+};
 
+UENUM(BlueprintType)
+enum class ELightState : uint8
+{
+	// 打开状态
+	TurnOn UMETA(DisplayName="打开状态"),
+
+	// 关闭状态
+	TurnOff UMETA(DisplayName="关闭状态"),
+};
+
+UENUM(BlueprintType)
+enum class ELightEffectType : uint8
+{
+	// 正常状态
+	Normal UMETA(DisplayName="正常状态"),
+	
+	// 打开状态
+	Flicker UMETA(DisplayName="闪烁状态"),
+};
+
+UENUM(BlueprintType)
+enum class EInteractiveState : uint8
+{
+	// 可交互状态
+	Interactable UMETA(DisplayName="可交互"),
+	
+	// 不可交互状态
+	Not_Interactacle UMETA(DisplayName="不可交互"),
+};
+
+UENUM(BlueprintType)
+enum class ELightFlickerType : uint8
+{
+	// 临时闪烁
+	Temporary UMETA(DisplayName="临时闪烁"),
+	
+	// 周期闪烁
+	Periodic UMETA(DisplayName="周期闪烁"),
 };
