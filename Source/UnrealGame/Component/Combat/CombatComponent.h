@@ -4,12 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "UnrealGame/Actor/ItemUse/ItemUse.h"
+#include "UnrealGame/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/HUD/BlasterHUD.h"
 #include "CombatComponent.generated.h"
 
 
 #define TRACE_LENGTH 80000.0f
+
+
+DECLARE_EVENT_OneParam(UCombatComponent, FOnBackpackThrowItem, UItemInfoObject* /*丢弃物品*/)
 
 /*
  * TODO - 是否需要设计战斗组件 - 根据装备使用的武器类型进行切换，不同战斗组件提供不同功能；还是各自的装备武器(Weapon)分别定义?
@@ -55,6 +60,9 @@ public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category="Aim", DisplayName="正在瞄准中")
 	bool bIsAiming;
 
+	// 背包丢弃物品事件
+	FOnBackpackThrowItem OnBackpackThrowItem;
+
 public:	
 	// Sets default values for this component's properties
 	UCombatComponent();
@@ -74,7 +82,7 @@ public:
 	void SC_Equipment(class AItemBase* EquipItem, float EquipTime);
 
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="服务器作为客户端装备")
-	void SNC_Equipment(AItemBase* Item);
+	void SNC_Equipment(AItemUse* Item);
 
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Weapon", DisplayName="服务器取消装备")
 	void CC_UnEquipment();
@@ -124,6 +132,8 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Weapon", DisplayName="获取玩家装备状态")
 	EPlayerEquipState GetPlayerEquipState();
+
+	virtual void BackpackThrowItemHandle(UItemInfoObject* ThrowItemObject);
 	
 protected:
 

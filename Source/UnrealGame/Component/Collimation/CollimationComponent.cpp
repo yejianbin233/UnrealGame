@@ -13,9 +13,14 @@ UCollimationComponent::UCollimationComponent()
 	// ...
 }
 
-void UCollimationComponent::Init(ABlasterCharacter* InPlayerCharacter)
+void UCollimationComponent::Init_Implementation(APlayerController* NewPlayerController)
 {
-	PlayerCharacter = InPlayerCharacter;
+	PlayerController = NewPlayerController;
+}
+
+void UCollimationComponent::ShowCollimation_Implementation(APlayerController* NewPlayerController)
+{
+	
 }
 
 // Called when the game starts
@@ -24,6 +29,11 @@ void UCollimationComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+	
+}
+
+void UCollimationComponent::HideCollimation()
+{
 	
 }
 

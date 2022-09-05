@@ -20,7 +20,6 @@ UCombatComponent::UCombatComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-	SetIsReplicated(true);
 	// ...
 }
 
@@ -46,6 +45,9 @@ void UCombatComponent::BeginPlay()
 	// 加载相关资产
 	LoadAsset();
 
+	SetIsReplicated(true);
+
+	OnBackpackThrowItem.AddUObject(this, &UCombatComponent::BackpackThrowItemHandle);
 }
 
 
@@ -57,58 +59,45 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 
 void UCombatComponent::SC_Equipment_Implementation(AItemBase* EquipItem, float EquipTime)
 {
-	for (auto PickableObject : PlayerCharacter->GetPickableObjects())
+	for (auto PickableObject : PlayerCharacter->PickableObjects)
 	{
 		if (PickableObject == EquipItem)
 		{
-			EPickupResult PickupResult = PlayerCharacter->GetBackpackComponent()->Pickup(PickableObject);
+			FPickupResult PickupResult = PlayerCharacter->GetBackpackComponent()->Pickup(PickableObject);
 			
-			if (PickupResult == EPickupResult::All)
+			// 只要物品在背包中存在
+			if (PickupResult.Result == EPickupResult::AddNewItem_All
+				|| PickupResult.Result == EPickupResult::AddNewItem_Part
+				|| PickupResult.Result == EPickupResult::StackAdd_All
+				|| PickupResult.Result == EPickupResult::StackAdd_Part)
 			{
-				PickableObject->Destroy();
-				SNC_Equipment(EquipItem);
+				SNC_Equipment(PickupResult.ItemInfoObject->UseItem);
 				PlayerCharacter->GetBackpackComponent()->OnServerReportBackpackItemChanged.Broadcast(EquipTime);
 			}
+			if (PickupResult.Result == EPickupResult::AddNewItem_All
+				|| PickupResult.Result == EPickupResult::StackAdd_All)
+			{
+				// 放入背包
+				EquipItem->PutInBackpackHandle();
+			}
+
+			break;
 		}
 	}
 }
 
-void UCombatComponent::SNC_Equipment(AItemBase* Item)
+void UCombatComponent::SNC_Equipment(AItemUse* Item)
 {
 	// note：在 Pickup() 时会自动重置数据，因此在该处先获取数据
 	if (!Item)
 	{
 		return;
 	}
-	
-	FString Id = Item->SceneItemInfo.Id;
-	// 装备
-	FEquipmentInfo EquipmentInfo = PlayerCharacter->GetEquipmentActorClass(FName(Id));
 
-	FVector Location = PlayerCharacter->GetActorLocation();
-	FActorSpawnParameters EquipmentWeaponSpawnParameters;
-	EquipmentWeaponSpawnParameters.Owner = GetOwner();
-	EquipmentWeaponSpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	
-	AWeapon* EquipmentWeapon = GetWorld()->SpawnActor<AWeapon>(EquipmentInfo.EquipmentBase, Location, FRotator(0), EquipmentWeaponSpawnParameters);
-
-	if (EquipmentWeapon)
+	if (AWeapon* EquippedWeaponItem = Cast<AWeapon>(Item))
 	{
-		EquipmentWeapon->Init(PlayerCharacter);
-
-		if (PlayerCharacter)
-		{
-			const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(EquipmentWeapon->GetEquippedWeaponSocket());
-
-			EquippedSocket->AttachActor(EquipmentWeapon, PlayerCharacter->GetMesh());
-
-			EquippedWeapon = EquipmentWeapon;
-
-			// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
-			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(EquippedWeapon->EquippedMontage);
-			
-			EquippedWeapon->Equipment(true);
-		}
+		EquippedWeapon = EquippedWeaponItem;
+		Item->Use(PlayerCharacter);
 	}
 }
 
@@ -121,7 +110,10 @@ void UCombatComponent::CC_UnEquipment_Implementation()
 
 void UCombatComponent::SC_UnEquipment_Implementation()
 {
-	NM_UnEquipmentExceptClient();
+
+	// 无法判断是否是服务器作为客户端，一次多播统一取消装备
+	// NM_UnEquipmentExceptClient();
+	NM_UnEquipment();
 }
 
 void UCombatComponent::NM_UnEquipmentExceptClient_Implementation()
@@ -149,8 +141,7 @@ void UCombatComponent::UnEquipment()
 	if (EquippedWeapon)
 	{
 		// 取消装备
-		EquippedWeapon->Equipment(false);
-		EquippedWeapon->Destroy();
+		EquippedWeapon->UnEquip();
 		EquippedWeapon = nullptr;
 	}
 }
@@ -338,6 +329,30 @@ EPlayerEquipState UCombatComponent::GetPlayerEquipState()
 	else
 	{
 		return EquippedWeapon->GetPlayerEquipState();
+	}
+}
+
+void UCombatComponent::BackpackThrowItemHandle(UItemInfoObject* ThrowItemObject)
+{
+	if (ThrowItemObject)
+	{
+		if (AWeapon* ThrowWeaponItem = Cast<AWeapon>(ThrowItemObject->UseItem))
+		{
+			// 如果丢掉了正在装备武器那么将取消装备，并将武器上的数据白柳
+			if (EquippedWeapon == ThrowWeaponItem)
+			{
+				if (PlayerCharacter->HasAuthority())
+				{
+					// 服务器取消装备
+					SC_UnEquipment();
+				}
+				else
+				{
+					// 客户端取消装备
+					CC_UnEquipment();
+				}
+			}
+		}
 	}
 }
 

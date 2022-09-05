@@ -8,12 +8,11 @@
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "UnrealGame/Backpack/BackpackLagCompensationComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealGame/Enums/WeaponTypes.h"
-#include "UnrealGame/Backpack/ItemInfoObject.h"
 #include "UnrealGame/Component/Camera/UnrealCameraComponent.h"
 #include "UnrealGame/Struct/UnrealGameStruct.h"
+#include "UnrealGame/Weapon/Weapon.h"
 #include "BlasterCharacter.generated.h"
 
 
@@ -129,6 +128,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="EnhancedInput | InputAction", AdvancedDisplay, DisplayName="退出摄像机调试模式")
 	TObjectPtr<class UInputAction> EIA_LeaveDebugMode;
 	/* Enhanced Input  */
+
+	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", DisplayName="当前可拾取的物品数组", meta=(AllowPrivateAccess=true))
+	TArray<AItemBase*> PickableObjects;
 	
 private:
 
@@ -140,9 +142,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly,Category="Pickup", DisplayName="是否检测到附近有可拾取物品", meta=(AllowPrivateAccess=true))
 	bool bHasPickableObject;
-
-	UPROPERTY(BlueprintReadOnly, Category="Pickup Object", meta=(AllowPrivateAccess=true), DisplayName="当前可拾取的物品数组", meta=(AllowPrivateAccess=true))
-	TArray<AItemBase*> PickableObjects;
+	
 	// 头顶控件组件
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true), DisplayName="头部控件组件")
 	class UWidgetComponent* OverheadWidget;
@@ -379,22 +379,6 @@ public:
 	void Elim();
 
 
-	/*
-	 * @description:GetItemInfoFromTable - 从物品数据表获取物品数据
-	 * @param Id - 物品的唯一Id
-	 *	
-	 * @return FItemInfo - 物品数据结构
-	 * ...
-	 *
-	 *	note：TODO 临时放置，便于获取数据表
-	 * 
-	 * @author: yejianbin
-	 * @version: v1.0
-	 * @createTime: 2022年07月08日 星期五 19:07:52
-	 */
-	UFUNCTION(BlueprintImplementableEvent, Category="背包组件", DisplayName="根据物品Id从物品表获取物品数据")
-	struct FItemInfo GetItemInfoFromTable(FName Id);
-
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Interactive", DisplayName="交互")
 	void Interactive();
 
@@ -403,9 +387,6 @@ public:
 
 	// TODO 检测到可拾取物体时，高亮显示
 	void HighLightPickableObject();
-
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category="Equipment", DisplayName="获取装备Actor类")
-	FEquipmentInfo GetEquipmentActorClass(FName EquipmentActorName);
 	
 protected:
 	// Called when the game starts or when spawned
@@ -621,8 +602,6 @@ public:
 	FORCEINLINE FName GetBoneCollisionBoxTagName() const { return BoneCollisionBoxTagName; };
 
 	FORCEINLINE UPlayerLagCompensationComponent* GetPlayerLagCompensationComponent() const { return PlayerLagCompensationComponent; };
-
-	FORCEINLINE TArray<AItemBase*> GetPickableObjects() const { return PickableObjects; };
 
 
 

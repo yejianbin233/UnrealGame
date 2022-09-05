@@ -31,5 +31,6 @@ public:
 	static float GetEnterOrLeavePickableItemLog();
 	static float GetEnterCameraDebugMode();
 	static float GetShowCameraDebugLog();
+	static float GetShowBackpackDebugLog();
 
 };

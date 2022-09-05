@@ -124,7 +124,7 @@ public:
 	 * @createTime: 2022年07月08日 星期五 20:07:20
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Backpack Function", DisplayName="创建物品格控件")
-	UItemWidget* CreateItemWidget(FVector2D InPosition, struct FBackpackItemInfo InItemInfo);
+	UItemWidget* CreateItemWidget(FVector2D InPosition, UItemInfoObject* InItemInfo);
 	
 	/*
 	 * @description: IsValidBackpackArea - 判断是否将物品拖出背包的有效空间外

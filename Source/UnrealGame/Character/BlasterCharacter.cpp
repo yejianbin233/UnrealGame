@@ -173,11 +173,6 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 void ABlasterCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
-	if (GetCombatComponent())
-	{
-		GetCombatComponent()->PlayerCharacter = this;
-	}
 }
 
 void ABlasterCharacter::Interactive_Implementation()
@@ -208,7 +203,7 @@ void ABlasterCharacter::Interactive_Implementation()
 		, FLinearColor::Red
 		, 5.f);
 
-	if (InteractiveTraceResult.bBlockingHit)
+	if (InteractiveTraceResult.bBlockingHit && InteractiveTraceResult.GetActor())
 	{
 		// bool bIsImplemented = InteractiveTraceResult.GetActor()->GetClass()->ImplementsInterface(UInteractiveInterface::StaticClass());
 		bool bIsImplemented = InteractiveTraceResult.GetActor()->Implements<UInteractiveInterface>();
@@ -235,6 +230,8 @@ void ABlasterCharacter::BeginPlay()
 		// 绑定伤害事件委托
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
 	}
+	CombatCopmponent->PlayerCharacter = this;
+	BackpackComponent->PlayerCharacter = this;
 }
 
 
@@ -529,13 +526,19 @@ void ABlasterCharacter::RotateDragItemWidget()
 
 void ABlasterCharacter::Pickup()
 {
+
+	// 如果本地客户端作为服务器，需要进行射线检测后才能执行拾取，但不需要进行客户端模拟阶段
 	
 	if (HasAuthority())
 	{
-		// 如果本地客户端作为服务器，需要进行射线检测后才能执行拾取，但不需要进行客户端模拟阶段
 		AItemBase* PickupItem = TracePickableObject(EPickableObjectState::Pickup);
-		GetBackpackComponent()->SNC_Pickup(PickupItem);
+		if (PickupItem && PickableObjects.Contains(PickupItem))
+		{
+			SC_Pickup(PickupItem, GetWorld()->TimeSeconds);
+		}
 	}
+
+	// 不允许进行客户端拾取，统一在服务器拾取后得到有保证的数据。
 	else
 	{
 		CC_Pickup();
@@ -550,20 +553,22 @@ void ABlasterCharacter::CC_Pickup_Implementation()
 	if (PickupItem)
 	{
 		// 客户端模拟拾取
-		EPickupResult PickupResult = GetBackpackComponent()->Pickup(PickupItem);
+		FPickupResult PickupResult = GetBackpackComponent()->Pickup(PickupItem);
 		
 		// 客户端拾取成功后，服务器执行实际拾取
 		float BackpackItemChangedTime= GetWorld()->GetTimeSeconds();
 		
-		if (PickupResult == EPickupResult::All)
+		if (PickupResult.Result == EPickupResult::AddNewItem_All
+			|| PickupResult.Result == EPickupResult::StackAdd_All)
 		{
 			SC_Pickup(PickupItem, BackpackItemChangedTime);
 			// 客户端隐藏物品，等待服务器拾取成功后销毁
-			PickupItem->CC_PickedUpHandle();
+			PickupItem->PutInBackpackHandle();
 			
 			GetBackpackComponent()->OnClientBackpackItemChanged.Broadcast(BackpackItemChangedTime);
 		}
-		else if(PickupResult == EPickupResult::Part)
+		else if(PickupResult.Result == EPickupResult::AddNewItem_Part
+			|| PickupResult.Result == EPickupResult::StackAdd_Part)
 		{
 			// 部分拾取不需要客户端隐藏物品
 			SC_Pickup(PickupItem, BackpackItemChangedTime);
@@ -575,12 +580,30 @@ void ABlasterCharacter::CC_Pickup_Implementation()
 void ABlasterCharacter::SC_Pickup_Implementation(AItemBase* PickupedUpItem, float BackpackItemChangedTime)
 {
 	// 客户端触发可拾取后，在服务器中只需要附近有该可拾取的物品就可直接进行拾取，而不用向客户端需要先进行射线检测再拾取
+	bHasPickableObject = false;
 	for (auto PickableObject : PickableObjects)
 	{
 		if (PickableObject == PickupedUpItem)
 		{
 			GetBackpackComponent()->SC_Pickup(PickableObject, BackpackItemChangedTime);
+
+			bHasPickableObject = true;
 			break;
+		}
+	}
+
+	// 客户端检测到有可拾取物品，但在服务器进行检测时由于网络问题发现可拾取物品已经不存在，那么将直接拾取失败
+	if (!bHasPickableObject)
+	{
+		if (BackpackLagCompensationComponent)
+		{
+			// 反馈失败，处理拾取的 AItemBase
+			BackpackLagCompensationComponent->ServerFeedbackPickupItemFailture(PickupedUpItem);
+		}
+		if (BackpackLagCompensationComponent)
+		{
+			// 反馈失败，处理客户端的背包数据
+			BackpackLagCompensationComponent->ServerFeedbackBackpackItemChangedResult(BackpackItemChangedTime);
 		}
 	}
 }
@@ -817,7 +840,11 @@ void ABlasterCharacter::HighLightPickableObject()
 		if (ensure(PlayerController))
 		{
 			FVector2D ViewportSize;
-			GEngine->GameViewport->GetViewportSize(ViewportSize);
+
+			if (GEngine && GEngine->GameViewport)
+			{
+				GEngine->GameViewport->GetViewportSize(ViewportSize);
+			}
 
 			FVector2D CrosshairLocation(ViewportSize.X / 2.0f, ViewportSize.Y / 2.0f);
 			

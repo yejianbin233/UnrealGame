@@ -18,26 +18,6 @@ UBackpackLagCompensationComponent::UBackpackLagCompensationComponent()
 	// ...
 }
 
-void UBackpackLagCompensationComponent::ServerReportClientCreateItemResult_Implementation(FName ItemName)
-{
-	TArray<AActor*> Items;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AItemBase::StaticClass(), Items);
-
-	for (auto Item : Items)
-	{
-		// 当服务器反馈时就删除客户端临时版本
-		if (FName(Item->GetName()) == ItemName)
-		{
-			Item->Destroy();
-		}
-	}
-}
-
-void UBackpackLagCompensationComponent::CheckEquipItems()
-{
-	
-}
-
 // Called when the game starts
 void UBackpackLagCompensationComponent::BeginPlay()
 {
@@ -67,19 +47,12 @@ void UBackpackLagCompensationComponent::BeginPlay()
 }
 
 
-// Called every frame
-void UBackpackLagCompensationComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
-}
-
 void UBackpackLagCompensationComponent::ServerFeedbackPickupItemFailture_Implementation(AItemBase* PickupFailtureItem)
 {
 	if (PickupFailtureItem != nullptr)
 	{
-		PickupFailtureItem->CC_CanclePickedUpHandle();
+		// 只要服务器添加失败，都在客户端执行，不改变位置
+		PickupFailtureItem->PutInSceneHandle(PickupFailtureItem->GetActorLocation());
 	}
 }
 
@@ -119,21 +92,42 @@ void UBackpackLagCompensationComponent::ServerFeedbackBackpackItemChangedResult_
 void UBackpackLagCompensationComponent::ClientRequestServerBackpackDataOverride_Implementation()
 {
 	// 如果允许服务器覆盖当前客户端的背包数据，则请求覆盖
+	if (PlayerCharacter->GetLocalRole() != ROLE_Authority)
+	{
+		return;
+	}
+	
 	if (PlayerCharacter)
 	{
 		UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
 		if (BackpackComponent)
 		{
-			ServerReportBackpackData(BackpackComponent->GetBackpackItemDatas());
+
+			TArray<UItemInfoObject*> Items = BackpackComponent->GetBackpackItemDatas();
+			for (int I=0; I < Items.Num(); I++)
+			{
+				if (Items[I])
+				{
+					ServerReportBackpackData(Items[I]->SceneItem, Items[I]->BackpackItemInfo, I);
+				}
+				else
+				{
+					ServerReportBackpackData(nullptr, FBackpackItemInfo(), I);
+				}
+			}
 		}
 	}
 }
 
 void UBackpackLagCompensationComponent::ServerReportBackpackData_Implementation(
-	const TArray<FBackpackItemInfo>& ServerBackpackItems)
+	AItemBase* Item, FBackpackItemInfo BackpackItemInfo, int Index)
 {
+	if (PlayerCharacter->GetLocalRole() != ROLE_AutonomousProxy)
+	{
+		return;
+	}
 	// 服务器作为客户端不需要反馈更新
-	OnServerReportBackpackDataOverride.Broadcast(ServerBackpackItems);
+	OnServerReportBackpackDataOverride.Broadcast(Item, BackpackItemInfo, Index);
 }
 
 

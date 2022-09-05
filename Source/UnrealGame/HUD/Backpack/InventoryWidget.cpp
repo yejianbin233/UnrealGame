@@ -94,7 +94,7 @@ void UInventoryWidget::Refresh()
 		{
 			FPositionItem IndexItem = PositionItems[Index];
 
-			UItemWidget* ItemWidget =  CreateItemWidget(IndexItem.Position, *IndexItem.Item);
+			UItemWidget* ItemWidget =  CreateItemWidget(IndexItem.Position, IndexItem.Item);
 			
 			UCanvasPanelSlot* ItemCanvasPanelSlot = BackpackContent->AddChildToCanvas(ItemWidget);
 

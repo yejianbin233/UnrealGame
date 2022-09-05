@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "CollimationComponent.h"
-#include "Curves/CurveVector.h"
 #include "CrosshairComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -106,8 +105,8 @@ public:
 public:
 	virtual void BeginPlay() override;
 	
-	virtual void Init(ABlasterCharacter* InPlayerCharacter) override;
-	virtual void ShowCollimation() override;
+	virtual void Init(APlayerController* NewPlayerController) override;
+	virtual void ShowCollimation(APlayerController* NewPlayerController) override;
 	virtual void HideCollimation() override;
 	
 	UFUNCTION(Category="Crosshair", DisplayName="增加开火计数")

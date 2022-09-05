@@ -51,22 +51,6 @@ void AUnrealPlayerController::UpdateClientActualPing()
 	}
 }
 
-void AUnrealPlayerController::CancelPickItemPickup()
-{
-	TArray<AActor*> Items;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AItemBase::StaticClass(), Items);
-	for (auto Item : Items)
-	{
-		AItemBase* ItemBase = Cast<AItemBase>(Item);
-
-		if (ItemBase)
-		{
-			ItemBase->CC_CanclePickedUpHandle();
-			UE_LOG(LogTemp, Warning, TEXT("CanclePickedUpHandle Item: %s"), *Item->GetName());
-		}
-	}
-}
-
 void AUnrealPlayerController::ClientRequestServerTime_Implementation(float RequestTimeOfClient)
 {
 	const float ReportTimeOfServer = GetWorld()->GetTimeSeconds();

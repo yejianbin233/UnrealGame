@@ -14,12 +14,13 @@ void UCrosshairComponent::BeginPlay()
 
 }
 
-void UCrosshairComponent::Init(ABlasterCharacter* InPlayerCharacter)
+void UCrosshairComponent::Init(APlayerController* NewPlayerController)
 {
-	Super::Init(InPlayerCharacter);
+	Super::Init(NewPlayerController);
 
-	if (ensureMsgf(PlayerCharacter != nullptr, TEXT("准星组件未设置玩家角色引用")))
+	if (ensureMsgf(NewPlayerController != nullptr, TEXT("准星组件未设置玩家角色引用")))
 	{
+		// APlayerController* LocalZeroPlayerController = UGameplayStatics::GetPlayerControllerFromID(GetWorld(),0);
 		APlayerController* LocalZeroPlayerController = UGameplayStatics::GetPlayerControllerFromID(GetWorld(),0);
 
 		if (LocalZeroPlayerController)
@@ -40,18 +41,21 @@ void UCrosshairComponent::Init(ABlasterCharacter* InPlayerCharacter)
 		}
 	}
 
-	if (PlayerCharacter->HasAuthority())
+	if (NewPlayerController && NewPlayerController->HasAuthority())
 	{
 		GetWorld()->GetTimerManager().SetTimer(RecoverTimerHandle, this, &UCrosshairComponent::FireOverheatRecoverHandle, RecoverInterval, true);
 		GetWorld()->GetTimerManager().SetTimer(FireCountReduceTimerHandle, this, &UCrosshairComponent::FireCountReduceHandle, FireCountReduceInterval, true);
 	}
 }
 
-void UCrosshairComponent::ShowCollimation()
+void UCrosshairComponent::ShowCollimation(APlayerController* NewPlayerController)
 {
+	Init(NewPlayerController);
+
 	if (CrosshairWidget)
-	{
-		CrosshairWidget->AddToViewport();
+	{// TODO 为什么客户端的准星不能正确显示???
+		// CrosshairWidget->AddToViewport();
+		CrosshairWidget->AddToPlayerScreen();
 	}
 }
 
@@ -132,8 +136,11 @@ void UCrosshairComponent::UpdateSpread(float SpreadCurveValue)
 	// CrosshairWidget->CrosshairsBottom->SetRenderTranslation(FVector2D(0, BottonSpreadCurveValue));
 	// CrosshairWidget->CrosshairsLeft->SetRenderTranslation(FVector2D(-LeftSpreadCurveValue, 0));
 	CurrentSpreadValue = FMath::Max(0, SpreadCurveValue);
-	CrosshairWidget->CrosshairsTop->SetRenderTranslation(FVector2D(0, -SpreadCurveValue));
-	CrosshairWidget->CrosshairsRight->SetRenderTranslation(FVector2D(SpreadCurveValue, 0));
-	CrosshairWidget->CrosshairsBottom->SetRenderTranslation(FVector2D(0, SpreadCurveValue));
-	CrosshairWidget->CrosshairsLeft->SetRenderTranslation(FVector2D(-SpreadCurveValue, 0));
+	if (CrosshairWidget)
+	{
+		CrosshairWidget->CrosshairsTop->SetRenderTranslation(FVector2D(0, -SpreadCurveValue));
+		CrosshairWidget->CrosshairsRight->SetRenderTranslation(FVector2D(SpreadCurveValue, 0));
+		CrosshairWidget->CrosshairsBottom->SetRenderTranslation(FVector2D(0, SpreadCurveValue));
+		CrosshairWidget->CrosshairsLeft->SetRenderTranslation(FVector2D(-SpreadCurveValue, 0));
+	}
 }

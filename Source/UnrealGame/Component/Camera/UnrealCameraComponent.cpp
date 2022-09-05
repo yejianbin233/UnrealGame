@@ -48,7 +48,7 @@ void UUnrealCameraComponent::BindCameraInput()
 {
 	if (!bIsBindInput)
 	{
-		if (PlayerController->InputComponent)
+		if (PlayerController && PlayerController->InputComponent)
 		{
 			if (UEnhancedInputComponent* EInputComponent = Cast<UEnhancedInputComponent>(PlayerController->InputComponent))
 			{

@@ -99,12 +99,43 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void InitHandle(ABlasterCharacter* InPlayerCharacter);
+	virtual void InitHandle() override;
 
-	virtual void Equipment(bool Equipped) override;
+	virtual void Use(ABlasterCharacter* InPlayerCharacter) override;
 
-	UFUNCTION(Client, Reliable, Category="Equipment", DisplayName="装备后的处理")
-	void EquipmentHandle(bool Equipped);
+	virtual void Equip() override;
+
+	virtual void SetEquptCharacter(ABlasterCharacter* BlasterCharacter) override;
+
+	// virtual void SNC_Equip() override;
+	//
+	virtual void SC_Equip() override;
+	//
+	virtual void CC_Equip() override;
+	//
+	virtual void NM_Equip() override;
+	//
+	virtual void NM_EquipExceptClient() override;
+
+	virtual void UnEquip() override;
+
+	// virtual void SNC_UnEquip() override;
+	//
+	// virtual void SC_UnEquip() override;
+	//
+	// virtual void CC_UnEquip() override;
+	//
+	// virtual void NM_UnEquip() override;
+	//
+	// virtual void NM_UnEquip_Implementation() override;
+	//
+	// virtual void UnEquipHandle() override;
+
+	UFUNCTION(Client, Reliable, Category="Equipment", DisplayName="装备客户端处理")
+	void CC_EquipmentHandle(bool Equipped);
+
+	UFUNCTION(NetMulticast, Reliable, Category="Equipment", DisplayName="装备多播处理")
+	void NM_EquipmentHandle(bool Equipped);
 	
 	/* 射击功能 */
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Fire", DisplayName="开火")

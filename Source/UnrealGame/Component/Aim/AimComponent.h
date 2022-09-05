@@ -17,9 +17,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Reference", DisplayName="玩家角色")
 	class ABlasterCharacter* PlayerCharacter;
 
-	UPROPERTY(BlueprintReadOnly, Category="Reference", DisplayName="玩家角色控制器")
-	class ABlasterPlayerController* PlayerController;
-
 	FTimeline AimStartedInterpTimelineComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Aim", DisplayName="结束瞄准插值时间轴组件")
@@ -57,10 +54,10 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintCallable, Category="Aim", DisplayName="开始瞄准插值")
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Aim", DisplayName="开始瞄准插值")
 	void AimStartedFOVInterp(float InterpValue);
 
-	UFUNCTION(BlueprintCallable, Category="Aim", DisplayName="结束瞄准插值")
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category="Aim", DisplayName="结束瞄准插值")
 	void AimEndedFOVInterp(float InterpValue);
 
 	UFUNCTION(BlueprintCallable, Category="Aim", DisplayName="摄像机瞄准")

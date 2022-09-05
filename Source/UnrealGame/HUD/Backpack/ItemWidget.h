@@ -39,18 +39,18 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, DisplayName="拖动检测时的处理")
 	void DragDetectedHandle();
 
-	/*
-	 * @description: CreateItemInfoObject - 创建可用于拖动控件的负载数据
-	 * @param BackpackItemInfo - 背包物品数据
-	 * 
-	 * @return 拖动控件的负载数据，数据内容与 BackpackItemInfo 一样
-	 * 
-	 * @author: yejianbin
-	 * @version: v1.0
-	 * @createTime: 2022年07月08日 星期五 20:07:15
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, DisplayName="创建拖动负载")
-	UItemInfoObject* CreateItemInfoObject(FBackpackItemInfo BackpackItemInfo);
+	// /*
+	//  * @description: CreateItemInfoObject - 创建可用于拖动控件的负载数据
+	//  * @param BackpackItemInfo - 背包物品数据
+	//  * 
+	//  * @return 拖动控件的负载数据，数据内容与 BackpackItemInfo 一样
+	//  * 
+	//  * @author: yejianbin
+	//  * @version: v1.0
+	//  * @createTime: 2022年07月08日 星期五 20:07:15
+	//  */
+	// UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, DisplayName="创建拖动负载")
+	// UItemInfoObject* CreateItemInfoObject(UItemInfoObject* BackpackItemInfo);
 	
 protected:
 

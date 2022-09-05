@@ -117,5 +117,19 @@ float AConsoleVariableActor::GetShowCameraDebugLog()
 	return CVarShowCameraDebugLog.GetValueOnGameThread();
 }
 
+static TAutoConsoleVariable<int32> CVarShowBackpackDebugLog(
+	TEXT("u.ShowBackpackDebugLog"),
+	0,
+	TEXT("是否显示背包组件 Debug 日志")
+	TEXT("0：不显式，默认")
+	TEXT("1：显示"),
+	ECVF_Default
+);
+
+float AConsoleVariableActor::GetShowBackpackDebugLog()
+{
+	return CVarShowBackpackDebugLog.GetValueOnGameThread();
+}
+
 
 

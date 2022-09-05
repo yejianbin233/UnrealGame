@@ -3,10 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BackpackLagCompensationComponent.h"
 #include "ItemInfoObject.h"
 #include "Components/ActorComponent.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "BackpackComponent.generated.h"
+
+
+DECLARE_LOG_CATEGORY_EXTERN(BackpackLog, Log, All)
+
 /*
  * FPositionItem - 背包物品位置
  */
@@ -17,7 +22,8 @@ struct FPositionItem
 
 	FVector2D Position;
 
-	FBackpackItemInfo* Item;
+	UPROPERTY()
+	UItemInfoObject* Item;
 };
 
 /* FOnBackpackItemChanged - 背包物品改变委托 */
@@ -57,23 +63,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Backpack Setting", DisplayName="背包单元格大小", meta=(AllowPrivateAccess))
 	float CellSize;
 
-	// 背包数据改变时事件，通知 UI 更新
+	// 背包数据改变时事件，通知 UI 更新(仅客户端响应)
 	FOnBackpackItemChanged OnBackpackItemChanged;
 
+	// 服务器背包拾取失败事件
 	FOnServerPickupItemFailture OnPickupItemFailture;
 
+	// 服务器向客户端反馈背包数据改变事件
 	FOnClientBackpackItemChanged OnClientBackpackItemChanged;
-	
+
+	// 服务器向客户端返回服务器背包数据
 	FOnServerReportBackpackItemChanged OnServerReportBackpackItemChanged;
-	
+
 private:
 	UPROPERTY(BlueprintReadWrite, Category="Backpack", DisplayName="背包存储的物品", meta=(AllowPrivateAccess))
-	TArray<FBackpackItemInfo> Items;
+	TArray<UItemInfoObject*> Items;
 	
 public:	
 	// Sets default values for this component's properties
 	UBackpackComponent();
 
+	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override; 
 	/*
 	 * @description: OpenOrCloseBackpack - 打开或关闭背包UI控件
 	 * 
@@ -85,7 +95,7 @@ public:
 	void OpenOrCloseBackpack();
 
 	UFUNCTION(BlueprintCallable, Category="Backpack", DisplayName="客户端拾取")
-	EPickupResult Pickup(AItemBase* PickItem);
+	FPickupResult Pickup(AItemBase* PickItem);
 	
 	// UFUNCTION(Client, Reliable, BlueprintCallable, Category="Backpack", DisplayName="客户端拾取")
 	// void CC_Pickup(AItemBase* PickItem);
@@ -95,6 +105,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Pickup", DisplayName="服务器作为客户端拾取")
 	void SNC_Pickup(AItemBase* PickItem);
+	
 	/*
 	 * @description: TryInsertItem - 尝试插入物品到背包指定位置，拖动物品控件时调用的背包放置物品方法（因为在拖动时会删除背包中的物品，因此是指定添加）
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构
@@ -108,7 +119,8 @@ public:
 	 * @createTime: 2022年07月08日 星期五 19:07:33
 	 */
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="尝试插入物品")
-	void TryInsertItem(FBackpackItemInfo Item, int Index);
+	bool TryInsertItem(UItemInfoObject* Item, int Index);
+
 	/*
 	 * @description: GetAllItem - 获取背包所有物品数据
 	 * @param PositionItems - 用于存储背包物品的数组
@@ -128,7 +140,7 @@ public:
 	 * @version: v1.0
 	 * @createTime: 2022年07月08日 星期五 20:07:43
 	 */
-	void GetItems(TArray<FPositionItem>* PositionItems, FString Id);
+	void GetItems(TArray<FPositionItem>& PositionItems, FString Id);
 
 	/*
 	 * @description: GetItems - 根据背包ID获取指定的背包物品
@@ -174,6 +186,7 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器端尝试移除背包物品")
 	void SC_TryRemoveItem(const FString& BackpackId, float RemoveTime);
+
 	/*
 	 * @description: CreateItemAfterDiscard - 在丢弃背包物品时，在场景中生成物品 Actor
 	 * @param FString - 物品的 Id
@@ -183,41 +196,41 @@ public:
 	 * @createTime: 2022年07月08日 星期五 20:07:07
 	 */
 	// TODO - 在游戏过程中，服务器创建的物品尺寸在服务器端正常，而在客户端却缩小了。
+	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="丢弃物品后在场景中生成物品")
+	void CreateItemAfterDiscard(UItemInfoObject* InBackpackItemInfoObject);
+	
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category="背包组件", DisplayName="客户端丢弃物品后在场景中生成物品")
-	void CC_CreateItemAfterDiscard(const FString& Id);
+	void CC_CreateItemAfterDiscard(AItemBase* Item);
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="背包组件", DisplayName="服务器创建丢弃后在场景中生成的物品")
-	void SC_CreateItemAfterDiscard(const FString& Id, FName ItemClientName);
+	void SC_CreateItemAfterDiscard(AItemBase* Item);
 
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="服务器作为客户端创建丢弃后在场景中生成的物品")
-	void SNC_CreateItemAfterDiscard(const FString& Id);
+	void SNC_CreateItemAfterDiscard(UItemInfoObject* InBackpackItemInfoObject);
 	/*
 	 * @description: GetItemsByType - 根据物品类型获取物品
 	 * @param InItemType 物品类型 
-	 * @param InItems 物品 
+	 * @param InItems 物品 	
 	 * 
 	 * @author: yejianbin
 	 * @version: v1.0
 	 * @createTime: 2022年08月04日 星期四 11:08:49
 	 */
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="根据物品类型获取物品")
-	void GetItemsByType(EItemType InItemType, TArray<FBackpackItemInfo>& InItems);
+	void GetItemsByType(EItemType InItemType, TArray<UItemInfoObject*>& InItems);
 
-	UFUNCTION(Category="Backpack", DisplayName="服务器背包数据覆盖客户端背包数据")
-	void ServerReportBackpackDataOverride(const TArray<FBackpackItemInfo>& ServerBackpackItems);
+	UFUNCTION(Client, Reliable, Category="Backpack", DisplayName="服务器背包数据覆盖客户端背包数据")
+	void ServerReportBackpackDataOverride(AItemBase* Item, FBackpackItemInfo BackpackItemInfo, int Index);
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	/*
-	 * @description:TryAddItem - 尝试添加物品，拾取物品时调用的背包添加物品方法
+	 * @description:TryAddItem - 尝试添加物品，拾取物品时调用的背包添加物品方法(随意放置在可放置区域)
 	 * @param FBackpackItemInfo - 背包存储的物品数据结构
 	 *	note：传引用是为了部分添加，剩余未添加的物品修改其数据
 	 * 
@@ -228,7 +241,7 @@ private:
 	 * @createTime: 2022年07月08日 星期五 19:07:51
 	 */
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="尝试添加物品")
-	bool TryAddItem(FBackpackItemInfo& Item);
+	FPickupResult TryAddItem(AItemBase* InSceneItem);
 
 	/*
 	 * @description: AddNewItem - 在背包指定位置放置物品
@@ -240,7 +253,7 @@ private:
 	 * @createTime: 2022年07月08日 星期五 20:07:07
 	 */
 	UFUNCTION(BlueprintCallable, Category="背包", DisplayName="在背包指定位置放置物品")
-	void AddNewItem(FBackpackItemInfo Item, int Index);
+	void AddNewItem(UItemInfoObject* Item, int Index);
 
 	/*
 	 * @description: IsHadPlace - 背包是否有空间放置物品
@@ -360,10 +373,20 @@ private:
 	 */
 	bool RemoveItem(FString BackpackId);
 
+	/*
+	 * @description: GetItems - 根据物品ID获取背包中指定的所有物品
+	 * @param PositionItems - 用于存储背包物品的数组
+	 *	@param Id - 物品 ID
+	 * 
+	 * @author: yejianbin
+	 * @version: v1.0
+	 * @createTime: 2022年07月08日 星期五 20:07:43
+	 */
+	void GetItems(TArray<UItemInfoObject*>& ItemInfos, FString Id);
+
 public:
 
 	FORCEINLINE UBackpackWidget* GetBackpackWidget() const { return BackpackWidget;};
 
-	FORCEINLINE TArray<FBackpackItemInfo> GetBackpackItemDatas(){ return Items; };
+	FORCEINLINE TArray<UItemInfoObject*> GetBackpackItemDatas(){ return Items; };
 };
-

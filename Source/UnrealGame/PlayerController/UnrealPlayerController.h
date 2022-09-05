@@ -39,9 +39,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Ping", DisplayName="获取客户端实际 Ping 值")
 	void UpdateClientActualPing();
 
-	UFUNCTION(BlueprintCallable)
-	void CancelPickItemPickup();
-
 protected:
 	
 	virtual void BeginPlay() override;
@@ -53,9 +50,6 @@ protected:
 
 	UFUNCTION(Client, Reliable, Category="Time Sync", DisplayName="服务器回报服务器时间")
 	void ServerReportServerTime(float RequestTimeOfClient, float ReportTimeOfServer);
-
-private:
-
 
 public:
 

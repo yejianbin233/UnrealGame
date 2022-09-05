@@ -4,11 +4,9 @@
 #include "LongRangeWeapon.h"
 
 #include "../../Casing/Casing.h"
-#include "Camera/CameraComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/Component/Aim/AimComponent.h"
@@ -29,6 +27,8 @@ ALongRangeWeapon::ALongRangeWeapon()
 void ALongRangeWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ALongRangeWeapon, ProjectileData);
 }
 
 void ALongRangeWeapon::OnConstruction(const FTransform& Transform)
@@ -61,9 +61,9 @@ void ALongRangeWeapon::Tick(float DeltaSeconds)
 	CurrentFireInterval = FMath::Clamp(CurrentFireInterval, 0, FireInterval);
 }
 
-void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
+void ALongRangeWeapon::InitHandle()
 {
-	Super::InitHandle(InPlayerCharacter);
+	Super::InitHandle();
 
 
 	if (CollimationComponentClass)
@@ -75,8 +75,6 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 
 		//重要，必须要注册组件
 		CollimationComponent->RegisterComponent();
-
-		CollimationComponent->Init(GetPlayerCharacter());
 		
 		if (!CollimationComponent)
 		{
@@ -86,7 +84,7 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 	
 	if (AimComponentClass)
 	{
-		AimComponent = NewObject<UAimComponent>(GetPlayerCharacter(), AimComponentClass);
+		AimComponent = NewObject<UAimComponent>(this, AimComponentClass);
 		
 		//重要，否则无法在细节面板中看到组件
 		this->AddInstanceComponent(AimComponent);
@@ -143,11 +141,239 @@ void ALongRangeWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 	
 }
 
-void ALongRangeWeapon::Equipment(bool Equipped)
+void ALongRangeWeapon::Use(ABlasterCharacter* InPlayerCharacter)
 {
-	Super::Equipment(Equipped);
+	Super::Use(InPlayerCharacter);
 
-	EquipmentHandle(Equipped);
+	if (InPlayerCharacter->GetLocalRole() == ROLE_Authority)
+	{
+		// 服务器调用
+		SC_Equip();
+	}
+	else
+	{
+		CC_Equip();
+	}
+}
+
+void ALongRangeWeapon::Equip()
+{
+	Super::Equip();
+	
+	if (PlayerCharacter)
+	{
+		// 装备动画
+		this->SetActorHiddenInGame(false);
+
+		const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(this->GetEquippedWeaponSocket());
+	
+		EquippedSocket->AttachActor(this, PlayerCharacter->GetMesh());
+	
+		// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
+		PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+		// 取消装备动画，隐藏 UItemUse Actor
+		PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+
+		if (PlayerCharacter->GetLocalRole() == ROLE_Authority
+			|| PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			AimComponent->Aiming(true);
+			if (APlayerController* PlayerController = Cast<APlayerController>(PlayerCharacter->GetController()))
+			{
+				CollimationComponent->ShowCollimation(PlayerController);
+			}
+		}
+
+		// 装备武器则显示武器
+		this->SetActorHiddenInGame(false);
+	}
+}
+
+void ALongRangeWeapon::SetEquptCharacter(ABlasterCharacter* NewPlayerCharacter)
+{
+	Super::SetEquptCharacter(NewPlayerCharacter);
+
+	if (this->AimComponent)
+	{
+		this->AimComponent->PlayerCharacter = NewPlayerCharacter;
+	}
+
+	
+	if (this->CollimationComponent)
+	{
+		if (APlayerController* PlayerController = Cast<APlayerController>(PlayerCharacter->GetController()))
+		{
+			this->CollimationComponent->PlayerController = PlayerController;
+		}
+	}
+}
+
+// void ALongRangeWeapon::SNC_Equip()
+// {
+// 	Super::SNC_Equip();
+// 	NM_Equip();
+//
+// 	// 服务器作为客户端显示瞄准 UI
+// 	AimComponent->Aiming(true);
+// }
+//
+void ALongRangeWeapon::SC_Equip()
+{
+	Super::SC_Equip();
+
+	NM_Equip();
+}
+//
+void ALongRangeWeapon::CC_Equip()
+{
+	Super::CC_Equip();
+
+	Equip();
+	// 客户端显示瞄准 UI
+	AimComponent->Aiming(true);
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(PlayerCharacter->GetController()))
+	{
+		CollimationComponent->ShowCollimation(PlayerController);
+	}
+	
+	SC_Equip();
+}
+//
+void ALongRangeWeapon::NM_Equip()
+{
+	Super::NM_Equip();
+
+	Equip();
+}
+
+void ALongRangeWeapon::NM_EquipExceptClient()
+{
+	Super::NM_EquipExceptClient();
+
+	if (PlayerCharacter)
+	{
+		// 客户端已自调用 "Equip"，在多播将其排除
+		if (PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			return;
+		}
+		Equip();
+	}
+}
+
+void ALongRangeWeapon::UnEquip()
+{
+	Super::UnEquip();
+
+	if (PlayerCharacter)
+	{
+		// 装备动画
+		this->SetActorHiddenInGame(false);
+
+		const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(this->GetEquippedWeaponSocket());
+
+		// 将 武器 Actor 分离
+		this->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		
+		// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
+		PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+		// 取消装备动画，隐藏 UItemUse Actor
+		PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+
+		// 取消装备则隐藏武器
+		this->SetActorHiddenInGame(true);
+
+		if (PlayerCharacter->GetLocalRole() == ROLE_Authority
+			|| PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+		{
+			AimComponent->Aiming(false);
+			CollimationComponent->HideCollimation();
+		}
+	}
+}
+
+// void ALongRangeWeapon::SNC_UnEquip()
+// {
+// 	Super::SNC_UnEquip();
+//
+// 	NM_UnEquip();
+// }
+//
+// void ALongRangeWeapon::SC_UnEquip()
+// {
+// 	Super::SC_UnEquip();
+// 	
+// 	NM_UnEquipExceptClient();
+// }
+//
+// void ALongRangeWeapon::CC_UnEquip()
+// {
+// 	Super::CC_UnEquip();
+//
+// 	UnEquip();
+// 	SC_UnEquip();
+// }
+//
+// void ALongRangeWeapon::NM_UnEquip()
+// {
+// 	Super::NM_UnEquip();
+//
+// 	UnEquip();
+// }
+//
+// void ALongRangeWeapon::NM_UnEquip_Implementation()
+// {
+// 	Super::NM_UnEquip_Implementation();
+//
+// 	if (PlayerCharacter)
+// 	{
+// 		if (PlayerCharacter->GetLocalRole() == ROLE_AutonomousProxy)
+// 		{
+// 			return;
+// 		}
+//
+// 		UnEquip();
+// 	}
+// }
+//
+// void ALongRangeWeapon::UnEquipHandle()
+// {
+// 	Super::UnEquipHandle();
+//
+// 	if (HasAuthority())
+// 	{
+// 		NM_UnEquip();
+// 	}
+// 	else
+// 	{
+// 		CC_UnEquip();
+// 		SC_UnEquip();
+// 	}
+// }
+
+void ALongRangeWeapon::NM_EquipmentHandle_Implementation(bool Equipped)
+{
+	if (PlayerCharacter)
+	{
+		if (Equipped)
+		{
+			// 装备动画
+			const USkeletalMeshSocket* EquippedSocket = PlayerCharacter->GetMesh()->GetSocketByName(this->GetEquippedWeaponSocket());
+	
+			EquippedSocket->AttachActor(this, PlayerCharacter->GetMesh());
+	
+			// 服务器播放一次，其他客户端的播放由 OnRep 事件处理
+			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+		}
+		else
+		{
+			// 取消装备动画，隐藏 UItemUse Actor
+			PlayerCharacter->GetMesh()->GetAnimInstance()->Montage_Play(this->EquippedMontage);
+
+			this->SetActorHiddenInGame(true);
+		}
+	}
 }
 
 void ALongRangeWeapon::CC_Fire_Implementation()
@@ -329,11 +555,14 @@ void ALongRangeWeapon::SNC_FireHoldStopHandle()
 	}
 }
 
-void ALongRangeWeapon::EquipmentHandle_Implementation(bool Equipped)
+void ALongRangeWeapon::CC_EquipmentHandle_Implementation(bool Equipped)
 {
 	if (Equipped)
 	{
-		CollimationComponent->ShowCollimation();
+		if (APlayerController* PlayerController = Cast<APlayerController>(PlayerCharacter->GetController()))
+		{
+			CollimationComponent->ShowCollimation(PlayerController);
+		}
 	}
 	else
 	{
@@ -475,7 +704,7 @@ void ALongRangeWeapon::CC_Reload_Implementation()
 	
 	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
 
-	TArray<FBackpackItemInfo> ProjectileItems;
+	TArray<UItemInfoObject*> ProjectileItems;
 	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
 
 	if (ProjectileItems.Num() == 0)
@@ -489,21 +718,21 @@ void ALongRangeWeapon::CC_Reload_Implementation()
 	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
 
 	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
-	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0]->BackpackItemInfo;
 	
 	for (auto ProjectileItem : ProjectileItems)
 	{
-		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileInfo.Num);
 		TempMaxReloadAmmoAmount -= CurReloadNum;
-		ProjectileItem.Num -= CurReloadNum;
+		ProjectileInfo.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
 		TArray<FBackpackItemInfo> BackpackItemInfos;
-		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem->BackpackId);
 		for (auto BackpackItemInfo : BackpackItemInfos)
 		{
-			BackpackItemInfo.Num = ProjectileItem.Num;
-			PlayerCharacter->GetBackpackComponent()->CC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo);
+			BackpackItemInfo.Num = ProjectileInfo.Num;
+			PlayerCharacter->GetBackpackComponent()->CC_UpdateItem(ProjectileItem->BackpackId, BackpackItemInfo);
 		}
 		if (TempMaxReloadAmmoAmount)
 		{
@@ -530,7 +759,7 @@ void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 	
 	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
 
-	TArray<FBackpackItemInfo> ProjectileItems;
+	TArray<UItemInfoObject*> ProjectileItems;
 	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
 
 	if (ProjectileItems.Num() == 0)
@@ -546,21 +775,21 @@ void ALongRangeWeapon::SC_Reload_Implementation(float ClientReloadTime)
 	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
 
 	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
-	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0]->BackpackItemInfo;
 	
 	for (auto ProjectileItem : ProjectileItems)
 	{
-		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileInfo.Num);
 		TempMaxReloadAmmoAmount -= CurReloadNum;
-		ProjectileItem.Num -= CurReloadNum;
+		ProjectileInfo.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
 		TArray<FBackpackItemInfo> BackpackItemInfos;
-		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem->BackpackId);
 		for (auto BackpackItemInfo : BackpackItemInfos)
 		{
-			BackpackItemInfo.Num = ProjectileItem.Num;
-			PlayerCharacter->GetBackpackComponent()->SC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo, ClientReloadTime);
+			BackpackItemInfo.Num = ProjectileInfo.Num;
+			PlayerCharacter->GetBackpackComponent()->SC_UpdateItem(ProjectileItem->BackpackId, BackpackItemInfo, ClientReloadTime);
 		}
 		
 		if (TempMaxReloadAmmoAmount == 0)
@@ -591,7 +820,7 @@ void ALongRangeWeapon::SNC_Reload()
 
 	UBackpackComponent* BackpackComponent = PlayerCharacter->GetBackpackComponent();
 
-	TArray<FBackpackItemInfo> ProjectileItems;
+	TArray<UItemInfoObject*> ProjectileItems;
 	BackpackComponent->GetItemsByType(EItemType::Projectile, ProjectileItems);
 
 	if (ProjectileItems.Num() == 0)
@@ -605,21 +834,21 @@ void ALongRangeWeapon::SNC_Reload()
 	int TempMaxReloadAmmoAmount = MaxReloadAmmoAmount;
 
 	// TODO - 尚未创建多种子弹，临时使用第一种子弹作为填充的子弹类型
-	FBackpackItemInfo ProjectileInfo = ProjectileItems[0];
+	FBackpackItemInfo ProjectileInfo = ProjectileItems[0]->BackpackItemInfo;
 	
 	for (auto ProjectileItem : ProjectileItems)
 	{
-		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileItem.Num);
+		int CurReloadNum = FMath::Min(TempMaxReloadAmmoAmount, ProjectileInfo.Num);
 		TempMaxReloadAmmoAmount -= CurReloadNum;
-		ProjectileItem.Num -= CurReloadNum;
+		ProjectileInfo.Num -= CurReloadNum;
 
 		// 更新背包子弹剩余数量
 		TArray<FBackpackItemInfo> BackpackItemInfos;
-		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem.BackpackId);
+		BackpackComponent->GetItemsByBackpackId(BackpackItemInfos, ProjectileItem->BackpackId);
 		for (auto BackpackItemInfo : BackpackItemInfos)
 		{
-			BackpackItemInfo.Num = ProjectileItem.Num;
-			PlayerCharacter->GetBackpackComponent()->SNC_UpdateItem(ProjectileItem.BackpackId, BackpackItemInfo);
+			BackpackItemInfo.Num = ProjectileInfo.Num;
+			PlayerCharacter->GetBackpackComponent()->SNC_UpdateItem(ProjectileItem->BackpackId, BackpackItemInfo);
 		}
 		if (TempMaxReloadAmmoAmount)
 		{

@@ -22,8 +22,8 @@ class UNREALGAME_API UCollimationComponent : public UActorComponent
 	
 public:
 
-	UPROPERTY(BlueprintReadOnly, Category="Reference", DisplayName="玩家角色")
-	class ABlasterCharacter* PlayerCharacter;
+	UPROPERTY(BlueprintReadOnly, Category="Reference", DisplayName="玩家角色控制器")
+	class APlayerController* PlayerController;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Widget", DisplayName="准星UI控件类")
 	TSubclassOf<class UUserWidget> CrosshairWidgetClass;
@@ -41,11 +41,15 @@ public:
 	// UCollimationComponent(const FObjectInitializer& ObjectInitializer);
 	UCollimationComponent();
 
-	virtual void Init(ABlasterCharacter* InPlayerCharacter);
+	UFUNCTION(Client, Reliable)
+	virtual void Init(APlayerController* NewPlayerController);
 
-	virtual void ShowCollimation() PURE_VIRTUAL(UCollimationSceneComponent::ShowCollimation);
+	UFUNCTION(Client, Reliable)
+	virtual void ShowCollimation(APlayerController* NewPlayerController);
+	// virtual void ShowCollimation(ABlasterCharacter* InPlayerCharacter) PURE_VIRTUAL(UCollimationSceneComponent::ShowCollimation);
 
-	virtual void HideCollimation() PURE_VIRTUAL(UCollimationSceneComponent::HideCollimation);
+	virtual void HideCollimation();
+	// virtual void HideCollimation() PURE_VIRTUAL(UCollimationSceneComponent::HideCollimation);
 
 protected:
 	// Called every frame

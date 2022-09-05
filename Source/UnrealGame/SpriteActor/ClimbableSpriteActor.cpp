@@ -19,10 +19,10 @@ AClimbableSpriteActor::AClimbableSpriteActor()
 	ClimbableStartComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ClimbableStartComponent"));
 	ClimbableEndComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ClimbableEndComponent"));
 	
-	ClimbableAreaComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
-	ClimbableBlockAreaComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
-	ClimbableStartComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
-	ClimbableEndComponent->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
+	ClimbableAreaComponent->SetupAttachment(GetRootComponent());
+	ClimbableBlockAreaComponent->SetupAttachment(GetRootComponent());
+	ClimbableStartComponent->SetupAttachment(GetRootComponent());
+	ClimbableEndComponent->SetupAttachment(GetRootComponent());
 
 	ClimbableAreaComponent->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnComponentBeginOverlap);
 	ClimbableAreaComponent->OnComponentEndOverlap.AddDynamic(this, &ThisClass::OnComponentEndOverlap);

@@ -7,7 +7,6 @@
 #include "Components/TimelineComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
-#include "UnrealGame/PlayerController/BlasterPlayerController.h"
 
 // Sets default values for this component's properties
 UAimComponent::UAimComponent()
@@ -17,9 +16,6 @@ UAimComponent::UAimComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	AimEndedInterpTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("结束瞄准插值时间轴组件"));
-	AimEndedInterpTimelineComponent->RegisterComponent();
-	
-	
 	// ...
 }
 
@@ -27,11 +23,19 @@ UAimComponent::UAimComponent()
 // Called when the game starts
 void UAimComponent::BeginPlay()
 {
+	AimEndedInterpTimelineComponent->RegisterComponent();
+	
 	Super::BeginPlay();
-	PlayerCharacter = Cast<ABlasterCharacter>(GetOwner());
+	AWeapon* Weapon = Cast<AWeapon>(GetOwner());
+	if (Weapon == nullptr)
+	{
+		return;
+	}
+	
+	PlayerCharacter = Cast<ABlasterCharacter>(Weapon->GetPlayerCharacter());
+	
 	if (PlayerCharacter)
 	{
-		PlayerController = Cast<ABlasterPlayerController>(PlayerCharacter->GetController());
 		DefaultFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
 	}
 	// ...
@@ -48,7 +52,7 @@ void UAimComponent::BeginPlay()
 	}
 }
 
-void UAimComponent::AimStartedFOVInterp(float InterpValue)
+void UAimComponent::AimStartedFOVInterp_Implementation(float InterpValue)
 {
 	if (!bIsAiming)
 	{
@@ -57,16 +61,15 @@ void UAimComponent::AimStartedFOVInterp(float InterpValue)
 	
 	InterpValue = FMath::Clamp(InterpValue, 0, 1);
 
-	float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
-	float NextFOV = UKismetMathLibrary::Lerp(CurrentFOV, AimFOV, InterpValue);
-
 	if (PlayerCharacter)
 	{
+		float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
+		float NextFOV = UKismetMathLibrary::Lerp(CurrentFOV, AimFOV, InterpValue);
 		PlayerCharacter->GetFollowCamera()->SetFieldOfView(NextFOV);
 	}
 }
 
-void UAimComponent::AimEndedFOVInterp(float InterpValue)
+void UAimComponent::AimEndedFOVInterp_Implementation(float InterpValue)
 {
 	if (bIsAiming)
 	{
@@ -75,11 +78,10 @@ void UAimComponent::AimEndedFOVInterp(float InterpValue)
 	
 	InterpValue = FMath::Clamp(InterpValue, 0, 1);
 
-	float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
-	float NextFOV = UKismetMathLibrary::Lerp(CurrentFOV, DefaultFOV, InterpValue);
-	
 	if (PlayerCharacter)
 	{
+		float CurrentFOV = PlayerCharacter->GetFollowCamera()->FieldOfView;
+		float NextFOV = UKismetMathLibrary::Lerp(CurrentFOV, DefaultFOV, InterpValue);
 		PlayerCharacter->GetFollowCamera()->SetFieldOfView(NextFOV);
 	}
 }
@@ -107,7 +109,7 @@ void UAimComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 void UAimComponent::Aiming(bool bToAim)
 {
 	bIsAiming = bToAim;
-	WidgetAim(bToAim);
+	// WidgetAim(bToAim);
 	CameraAim(bToAim);
 }
 

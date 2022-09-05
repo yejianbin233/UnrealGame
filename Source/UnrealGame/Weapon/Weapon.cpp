@@ -27,15 +27,14 @@ AWeapon::AWeapon()
 	SetRootComponent(WeaponMeshComponent);
 }
 
-void AWeapon::Init_Implementation(ABlasterCharacter* InPlayerCharacter)
+void AWeapon::Init_Implementation()
 {
-	InitHandle(InPlayerCharacter);
+	bIsInit = true;
+	InitHandle();
 }
 
-void AWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
+void AWeapon::InitHandle()
 {
-	PlayerCharacter = InPlayerCharacter;
-	
 	UUnrealGameAssetManager* AssetManager = UUnrealGameAssetManager::Get();
 
 	// note：需要预加载资产数据
@@ -47,10 +46,20 @@ void AWeapon::InitHandle(ABlasterCharacter* InPlayerCharacter)
 	PlayerEquipState = WeaponAsset->PlayerEquipState;
 }
 
-void AWeapon::Equipment(bool Equipped)
-{
-	// do somethinig
-}
+// void AWeapon::NM_UnEquip_Implementation()
+// {
+// 	
+// }
+//
+// void AWeapon::NM_UnEquipExceptClient_Implementation()
+// {
+// 	
+// }
+//
+// void AWeapon::UnEquipHandle()
+// {
+// 	
+// }
 
 void AWeapon::OnConstruction(const FTransform& Transform)
 {
@@ -68,3 +77,73 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AWeapon, EquippedMontage);
 	DOREPLIFETIME(AWeapon, PlayerEquipState);
 }
+
+void AWeapon::Use(ABlasterCharacter* NewPlayerCharacter)
+{
+	Super::Use(NewPlayerCharacter);
+	
+	SetEquptCharacter(NewPlayerCharacter);
+	
+	if (!bIsInit)
+	{
+		Init();
+	}
+}
+
+void AWeapon::Equip()
+{
+	
+}
+
+void AWeapon::UnEquip()
+{
+	
+}
+
+void AWeapon::SetEquptCharacter_Implementation(ABlasterCharacter* NewPlayerCharacter)
+{
+	if (NewPlayerCharacter)
+	{
+		this->PlayerCharacter = NewPlayerCharacter;
+	}
+}
+
+void AWeapon::CC_Equip_Implementation()
+{
+	
+}
+//
+void AWeapon::SC_Equip_Implementation()
+{
+	
+}
+//
+// void AWeapon::SNC_Equip_Implementation()
+// {
+// 	
+// }
+//
+void AWeapon::NM_Equip_Implementation()
+{
+	
+}
+//
+void AWeapon::NM_EquipExceptClient_Implementation()
+{
+	
+}
+//
+// void AWeapon::SNC_UnEquip()
+// {
+// 	
+// }
+//
+// void AWeapon::SC_UnEquip_Implementation()
+// {
+// 	
+// }
+//
+// void AWeapon::CC_UnEquip_Implementation()
+// {
+// 	
+// }

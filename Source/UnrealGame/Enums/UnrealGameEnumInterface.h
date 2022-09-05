@@ -33,9 +33,14 @@ enum class EWeaponPlay : uint8
 UENUM(BlueprintType)
 enum class EPickupResult : uint8
 {
-	All UMETA(DisplayName="拾取全部"),
-	Part UMETA(DisplayName="拾取部分"),
+	AddNewItem_All UMETA(DisplayName="添加新物品-拾取全部"),
+	AddNewItem_Part UMETA(DisplayName="添加新物品-拾取部分"),
+
+	StackAdd_All UMETA(DisplayName="叠加拾取全部"),
+	StackAdd_Part UMETA(DisplayName="叠加拾取部分"),
+
 	Fail UMETA(DisplayName="失败"),
+	BackpackUnique_Fail UMETA(DisplayName="失败，背包物品唯一，不可添加"),
 };
 
 UENUM(BlueprintType)

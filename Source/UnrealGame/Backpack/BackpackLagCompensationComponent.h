@@ -3,8 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ItemBase.h"
 #include "ItemInfoObject.h"
 #include "Components/ActorComponent.h"
+#include "UnrealGame/Struct/UnrealGameStruct.h"
 #include "BackpackLagCompensationComponent.generated.h"
 
 // USTRUCT(BlueprintType)
@@ -16,7 +18,8 @@
 // 	float ChagedTime;
 // };
 
-DECLARE_EVENT_OneParam(UBackpackLagCompensationComponent, FOnServerReportBackpackDataOverride, const TArray<FBackpackItemInfo>&)
+DECLARE_EVENT_ThreeParams(UBackpackLagCompensationComponent, FOnServerReportBackpackDataOverride, AItemBase* Item, FBackpackItemInfo BackpackItemInfo, int Index)
+// DECLARE_EVENT_OneParam(UBackpackLagCompensationComponent, FOnServerReportBackpackDataOverride, const TArray<UItemInfoObject*>&)
 DECLARE_EVENT_OneParam(UBackpackLagCompensationComponent, FOnClientBackpackItemChanged, float);
 DECLARE_EVENT_OneParam(UBackpackLagCompensationComponent, FOnServerReportBackpackItemChanged, float);
 
@@ -47,7 +50,7 @@ public:
 	/*
 	 *	ServerFeedbackPickupItemFailture - 在客户端拾取场景物品时，如果本地模拟成功就会隐藏物品，当在服务器拾取失败时，会将客户端物品的隐藏状态变为显示状态
 	 */
-	UFUNCTION(NetMulticast, Reliable, Category="Backpack", DisplayName="服务器反馈背包拾取物品结果")
+	UFUNCTION(Client, Reliable, Category="Backpack", DisplayName="服务器反馈背包拾取物品结果")
 	void ServerFeedbackPickupItemFailture(AItemBase* PickupFailtureItem);
 
 	/*
@@ -74,21 +77,13 @@ public:
 	 * 当需要覆盖客户端背包数据时，从服务器反馈的背包数据
 	 */
 	UFUNCTION(Client, Reliable, Category="Backpack", DisplayName="服务器回报服务器背包物品数据")
-	void ServerReportBackpackData(const TArray<FBackpackItemInfo>& ServerBackpackItems);
-
-	UFUNCTION(Client, Reliable, Category="Backpack", DisplayName="服务器回报客户端创建物品结果")
-	void ServerReportClientCreateItemResult(FName ItemName);
-
-	UFUNCTION(DisplayName="检测装备的物品")
-	void CheckEquipItems();
+	void ServerReportBackpackData(AItemBase* Item, FBackpackItemInfo BackpackItemInfo, int Index);
+	// void ServerReportBackpackData(const TArray<UItemInfoObject*>& ServerBackpackItems);
 	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	
 };
