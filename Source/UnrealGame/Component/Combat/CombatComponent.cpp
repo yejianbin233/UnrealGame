@@ -96,7 +96,7 @@ void UCombatComponent::SNC_Equipment(AItemUse* Item)
 
 	if (AWeapon* EquippedWeaponItem = Cast<AWeapon>(Item))
 	{
-		EquippedWeapon = EquippedWeaponItem;
+		// EquippedWeapon = EquippedWeaponItem;
 		Item->Use(PlayerCharacter);
 	}
 }

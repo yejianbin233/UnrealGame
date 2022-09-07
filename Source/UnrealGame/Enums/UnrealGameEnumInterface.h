@@ -139,3 +139,13 @@ enum class ELightFlickerType : uint8
 	// 周期闪烁
 	Periodic UMETA(DisplayName="周期闪烁"),
 };
+
+UENUM(BlueprintType)
+enum class EItemOptionsType : uint8
+{
+	Equip UMETA(DisplayName="装备"),
+	Use UMETA(DisplayName="使用"),
+	Show UMETA(DisplayName="展示"),
+	Throw UMETA(DisplayName="丢弃"),
+	Cancle UMETA(DisplayName="取消"),
+};

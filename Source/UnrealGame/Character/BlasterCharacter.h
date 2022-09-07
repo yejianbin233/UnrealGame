@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "BlasterAnimInstance.h"
+#include "InputMappingContext.h"
 #include "InputActionValue.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"

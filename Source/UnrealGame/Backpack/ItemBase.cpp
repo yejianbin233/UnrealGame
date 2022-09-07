@@ -211,6 +211,8 @@ void AItemBase::Init()
 	ActualItemInfo.bIsCanStacking = ItemInfo->bIsCanStacking;
 	ActualItemInfo.MaxStackingNum = ItemInfo->MaxStackingNum;
 
+	DT_ItemInfo = *ItemInfo;
+	
 	if (ItemInfo->ItemUseClass)
 	{
 		ItemUseClass = ItemInfo->ItemUseClass;

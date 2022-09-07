@@ -3,13 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputMappingContext.h"
+#include "InputActionValue.h"
 #include "Components/TimelineComponent.h"
 #include "UnrealGame/Enums/UnrealGameEnumInterface.h"
 #include "UnrealCameraComponent.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(CameraLog, Log, All);
 
-struct FInputActionValue;
 UCLASS(BlueprintType, Blueprintable, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class UNREALGAME_API UUnrealCameraComponent : public USceneComponent
 {

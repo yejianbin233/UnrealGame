@@ -36,6 +36,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Item Data Table", DisplayName="物品数据表", meta=(AllowPrivateAccess))
 	UDataTable* DT_Item;
 
+	UPROPERTY(BlueprintReadWrite, Category="Item Data", DisplayName="物品数据表数据", meta=(AllowPrivateAccess))
+	FItemInfo DT_ItemInfo;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Item Use", DisplayName="物品使用类", meta=(AllowPrivateAccess))
 	TSubclassOf<AItemUse> ItemUseClass;
 
@@ -146,4 +149,6 @@ public:
 	FORCEINLINE TSubclassOf<AItemUse> GetItemUseClass() const { return ItemUseClass; }
 	
 	FORCEINLINE UItemInfoObject* GetItemInfoObject() const { return ItemInfoObject; }
+	
+	FORCEINLINE FItemInfo GetDTItemInfo() const { return DT_ItemInfo; }
 };

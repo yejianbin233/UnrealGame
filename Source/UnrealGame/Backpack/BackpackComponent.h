@@ -206,7 +206,7 @@ public:
 	void SC_CreateItemAfterDiscard(AItemBase* Item);
 
 	UFUNCTION(BlueprintCallable, Category="背包组件", DisplayName="服务器作为客户端创建丢弃后在场景中生成的物品")
-	void SNC_CreateItemAfterDiscard(UItemInfoObject* InBackpackItemInfoObject);
+	void SNC_CreateItemAfterDiscard(AItemBase* Item);
 	/*
 	 * @description: GetItemsByType - 根据物品类型获取物品
 	 * @param InItemType 物品类型 

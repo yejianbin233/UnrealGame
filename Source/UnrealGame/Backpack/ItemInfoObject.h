@@ -9,6 +9,7 @@
 #include "ItemInfoObject.generated.h"
 
 
+struct FItemOptions;
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {

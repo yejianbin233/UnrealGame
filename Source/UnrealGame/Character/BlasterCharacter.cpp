@@ -1079,8 +1079,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 			Subsystem->ClearAllMappings();
 
 			Subsystem->AddMappingContext(ShootGameInputMappingContext, 0);
-
-			
 		}
 	}
 

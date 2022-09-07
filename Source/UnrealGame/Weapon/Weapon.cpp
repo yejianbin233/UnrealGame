@@ -9,6 +9,7 @@
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Character/BlasterCharacter.h"
 #include "UnrealGame/Component/Collimation/CollimationComponent.h"
+#include "UnrealGame/Component/Combat/CombatComponent.h"
 #include "UnrealGame/DataAsset/UnrealGameAssetManager.h"
 #include "UnrealGame/DataAsset/WeaponAsset.h"
 
@@ -87,6 +88,11 @@ void AWeapon::Use(ABlasterCharacter* NewPlayerCharacter)
 	if (!bIsInit)
 	{
 		Init();
+	}
+
+	if (PlayerCharacter && PlayerCharacter->GetCombatComponent())
+	{
+		PlayerCharacter->GetCombatComponent()->EquippedWeapon = this;
 	}
 }
 

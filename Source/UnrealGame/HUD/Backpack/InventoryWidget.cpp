@@ -95,7 +95,10 @@ void UInventoryWidget::Refresh()
 			FPositionItem IndexItem = PositionItems[Index];
 
 			UItemWidget* ItemWidget =  CreateItemWidget(IndexItem.Position, IndexItem.Item);
-			
+
+			ItemWidget->BackpackComponent = BackpackComponent;
+
+			// 调整位置
 			UCanvasPanelSlot* ItemCanvasPanelSlot = BackpackContent->AddChildToCanvas(ItemWidget);
 
 			FVector2D Position(IndexItem.Position.X * CellSize, IndexItem.Position.Y * CellSize);

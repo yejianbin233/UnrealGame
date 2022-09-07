@@ -5,6 +5,8 @@
 
 #include "ItemBase.h"
 #include "Net/UnrealNetwork.h"
+#include "UnrealGame/Enums/UnrealGameEnumInterface.h"
+#include "UnrealGame/HUD/Backpack/ItemOperatorWidget.h"
 
 void UItemInfoObject::Init(AItemBase* Item)
 {

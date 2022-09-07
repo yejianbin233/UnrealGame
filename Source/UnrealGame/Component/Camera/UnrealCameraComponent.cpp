@@ -287,6 +287,23 @@ void UUnrealCameraComponent::CustomShot()
 	}
 }
 
+void UUnrealCameraComponent::ZoomFOV(const FInputActionValue& ActionValue)
+{
+	float CurrentFOV = GetCameraComponent()->FieldOfView;
+
+	// 滚轮输入的值
+	if (AConsoleVariableActor::GetShowCameraDebugLog())
+	{
+		UE_LOG(CameraLog, Log, TEXT("CurrentFOV : %f"), CurrentFOV);
+		UE_LOG(CameraLog, Log, TEXT("Zoom Value: %f"), ActionValue.GetMagnitude());
+	}
+
+	float NewFOV = CurrentFOV + (ZoomSpeed * ActionValue.GetMagnitude());
+
+	NewFOV = FMath::Clamp(NewFOV, MinFOV, MaxFOV);
+	GetCameraComponent()->FieldOfView = NewFOV;
+}
+
 // Called when the game starts
 void UUnrealCameraComponent::BeginPlay()
 {
@@ -543,23 +560,6 @@ void UUnrealCameraComponent::AdjustZOffset(const FInputActionValue& ActionValue)
 	FVector CurrentTargetOffset = GetSpringArmComponent()->TargetOffset;
 	CurrentTargetOffset.Z += ActionValue.GetMagnitude() * ArmTartOffsetZSpeed;
 	GetSpringArmComponent()->TargetOffset = CurrentTargetOffset;
-}
-
-void UUnrealCameraComponent::ZoomFOV(const FInputActionValue& ActionValue)
-{
-	float CurrentFOV = GetCameraComponent()->FieldOfView;
-
-	// 滚轮输入的值
-	if (AConsoleVariableActor::GetShowCameraDebugLog())
-	{
-		UE_LOG(CameraLog, Log, TEXT("CurrentFOV : %f"), CurrentFOV);
-		UE_LOG(CameraLog, Log, TEXT("Zoom Value: %f"), ActionValue.GetMagnitude());
-	}
-
-	float NewFOV = CurrentFOV + (ZoomSpeed * ActionValue.GetMagnitude());
-
-	NewFOV = FMath::Clamp(NewFOV, MinFOV, MaxFOV);
-	GetCameraComponent()->FieldOfView = NewFOV;
 }
 
 void UUnrealCameraComponent::SaveScreenShot(FViewport* InViewport)

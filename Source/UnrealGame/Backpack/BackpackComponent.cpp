@@ -13,6 +13,7 @@
 #include "Net/UnrealNetwork.h"
 #include "UnrealGame/Component/Combat/CombatComponent.h"
 #include "UnrealGame/HUD/Backpack/InventoryWidget.h"
+#include "UnrealGame/HUD/Backpack/ItemOperatorWidget.h"
 
 DEFINE_LOG_CATEGORY(BackpackLog)
 
@@ -64,6 +65,25 @@ void UBackpackComponent::BeginPlay()
 			BackpackWidget = Cast<UBackpackWidget>(UserWidget);
 			if (BackpackWidget)
 			{
+				BackpackWidget->BackpackComponent = this;
+
+				// 创建物品渲染Actor
+				BackpackWidget->CreateItemRender();
+
+				// 创建物品渲染控件
+				BackpackWidget->ItemRenderWidget = CreateWidget<UItemRenderWidget>(PlayerController, BackpackWidget->ItemRenderWidgetClass);
+				if (BackpackWidget->ItemRenderWidget)
+				{
+					BackpackWidget->ItemRenderWidget->ItemRender = BackpackWidget->ItemRender;
+				}
+				
+				BackpackWidget->ItemOperatorWidget = CreateWidget<UItemOperatorWidget>(PlayerController, BackpackWidget->ItemOperatorWidgetClass);
+				if (BackpackWidget->ItemOperatorWidget)
+				{
+					BackpackWidget->ItemOperatorWidget->BackpackComponent = this;
+				}
+				
+				// 初始化背包库存控件 
 				BackpackWidget->InventoryWidget->Init(this);
 			}
 		}
@@ -564,6 +584,8 @@ void UBackpackComponent::GetItems(TArray<UItemInfoObject*>& ItemInfos, FString I
 	}
 }
 
+
+
 void UBackpackComponent::GetItemsByBackpackId(TArray<FBackpackItemInfo>& BackpackItemInfos, FString BackpackId)
 {
 	for(int Index=0; Index < Items.Num(); Index++)
@@ -668,15 +690,29 @@ void UBackpackComponent::OpenOrCloseBackpack_Implementation()
 		
 		PlayerController->SetInputMode(GameOnly);
 		
-	} else
+	}
+	else
 	{
-		FInputModeGameAndUI GameAndUI;
-		if (BackpackWidget != nullptr)
-		{
-			GameAndUI.SetWidgetToFocus(BackpackWidget->TakeWidget());
-		}
-		GameAndUI.SetHideCursorDuringCapture(true);
-		GameAndUI.SetLockMouseToViewportBehavior(EMouseLockMode::LockOnCapture);
+		 FInputModeGameAndUI GameAndUI;
+		 if (BackpackWidget != nullptr)
+		 {
+			BackpackWidget->SetFocus();
+		  BackpackWidget->SetKeyboardFocus();
+		 	GameAndUI.SetWidgetToFocus(BackpackWidget->TakeWidget());
+		 }
+		 GameAndUI.SetHideCursorDuringCapture(false);
+
+		 // SetLockMouseToViewportBehavior - 锁定鼠标在屏幕内的功能
+		 GameAndUI.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		// FInputModeUIOnly UIOnly;
+		// if (BackpackWidget != nullptr)
+		// {
+		// 	BackpackWidget->SetFocus();
+		// 	BackpackWidget->SetKeyboardFocus();
+		// 	UIOnly.SetWidgetToFocus(BackpackWidget->TakeWidget());
+		// }
+		// UIOnly.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 		
 		PlayerController->bShowMouseCursor = true;
 		PlayerController->SetInputMode(GameAndUI);
@@ -772,8 +808,15 @@ void UBackpackComponent::CC_CreateItemAfterDiscard_Implementation(AItemBase* Ite
 	{
 		PlayerCharacter->GetCombatComponent()->OnBackpackThrowItem.Broadcast(Item->GetItemInfoObject());
 	}
-	CreateItemAfterDiscard(Item->GetItemInfoObject());
-	SC_CreateItemAfterDiscard(Item);
+	if (PlayerController->HasAuthority())
+	{
+		SNC_CreateItemAfterDiscard(Item);
+	}
+	else
+	{
+		CreateItemAfterDiscard(Item->GetItemInfoObject());
+		SC_CreateItemAfterDiscard(Item);
+	}
 }
 
 void UBackpackComponent::SC_CreateItemAfterDiscard_Implementation(AItemBase* Item)
@@ -785,13 +828,13 @@ void UBackpackComponent::SC_CreateItemAfterDiscard_Implementation(AItemBase* Ite
 	CreateItemAfterDiscard(Item->GetItemInfoObject());
 }
 
-void UBackpackComponent::SNC_CreateItemAfterDiscard(UItemInfoObject* InBackpackItemInfoObject)
+void UBackpackComponent::SNC_CreateItemAfterDiscard(AItemBase* Item)
 {
 	if (PlayerCharacter)
 	{
-		PlayerCharacter->GetCombatComponent()->OnBackpackThrowItem.Broadcast(InBackpackItemInfoObject);
+		PlayerCharacter->GetCombatComponent()->OnBackpackThrowItem.Broadcast(Item->GetItemInfoObject());
 	}
-	CreateItemAfterDiscard(InBackpackItemInfoObject);
+	CreateItemAfterDiscard(Item->GetItemInfoObject());
 }
 
 void UBackpackComponent::GetItemsByType(EItemType InItemType, TArray<UItemInfoObject*>& InItems)
